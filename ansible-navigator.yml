@@ -1,0 +1,27 @@
+---
+# Configuración de ansible-navigator para los alumnos que lo usen.
+#
+# No es obligatorio: el curso se puede seguir con ansible-playbook a secas o
+# desde AWX. Se incluye para quien quiera trabajar con el entorno de
+# ejecución en local.
+ansible-navigator:
+  ansible:
+    inventory:
+      entries:
+        - ejemplo/inventario.ini
+  execution-environment:
+    container-engine: auto
+    enabled: true
+    # Cambiar a la imagen del entorno que toque: básico al empezar,
+    # avanzado cuando el curso lo pida.
+    image: registry.ivanosuna.com/curso/ee-basico:1.0
+    pull:
+      policy: missing
+    volume-mounts:
+      # La clave SSH del alumno, para que el entorno pueda conectar.
+      - src: ~/.ssh/aula
+        dest: /runner/.ssh/aula
+        options: ro
+  mode: stdout
+  logging:
+    level: warning

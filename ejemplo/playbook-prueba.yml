@@ -1,0 +1,41 @@
+---
+# Playbook de comprobación: lo primero que ejecuta el alumno.
+#
+# No cambia nada en las máquinas. Sólo demuestra tres cosas:
+#   1. que Ansible conecta por SSH
+#   2. que recoge datos del sistema (gather_facts)
+#   3. que sabe distinguir Rocky de Ubuntu, que es la base de todo lo que
+#      viene después: condicionales, when, y módulos por familia
+#
+# Ejecutar:   ansible-playbook playbook-prueba.yml
+- name: "Comprobar que el laboratorio responde"
+  hosts: servidores
+  gather_facts: true      # lo que rellena las variables ansible_*
+  become: false
+
+  tasks:
+    - name: "Saludar y decir qué sistema hay debajo"
+      ansible.builtin.debug:
+        msg: >-
+          Hola desde {{ inventory_hostname }}:
+          {{ ansible_distribution }} {{ ansible_distribution_version }},
+          familia {{ ansible_os_family }},
+          kernel {{ ansible_kernel }}
+
+    - name: "Comprobar que la elevación de privilegios funciona"
+      ansible.builtin.command: id -un
+      become: true
+      register: quien
+      changed_when: false
+
+    - name: "Mostrar con qué usuario acabamos"
+      ansible.builtin.debug:
+        msg: "sin become soy 'ansible'; con become soy '{{ quien.stdout }}'"
+
+    # La familia es lo que permite escribir UN playbook para las dos máquinas.
+    # Fíjate: mismo objetivo, distinto gestor de paquetes.
+    - name: "Gestor de paquetes según la familia"
+      ansible.builtin.debug:
+        msg: >-
+          {{ 'dnf, porque es RedHat' if ansible_os_family == 'RedHat'
+             else 'apt, porque es Debian' }}

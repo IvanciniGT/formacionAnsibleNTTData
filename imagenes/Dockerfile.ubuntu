@@ -1,0 +1,21 @@
+# Maquina simulada del aula de Ansible — Ubuntu.
+# Misma idea que la de Rocky: ver Dockerfile.rocky para el porque.
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      openssh-server python3 sudo procps iproute2 ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd -m -s /bin/bash ansible \
+ && echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ansible \
+ && chmod 0440 /etc/sudoers.d/ansible \
+ && mkdir -p /home/ansible/.ssh /run/sshd \
+ && chown -R ansible:ansible /home/ansible/.ssh \
+ && chmod 700 /home/ansible/.ssh
+
+COPY arranque.sh /usr/local/bin/arranque.sh
+RUN chmod +x /usr/local/bin/arranque.sh
+
+EXPOSE 22
+CMD ["/usr/local/bin/arranque.sh"]

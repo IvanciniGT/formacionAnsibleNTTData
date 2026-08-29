@@ -1,0 +1,25 @@
+---
+# Entorno de ejecución BÁSICO para los cursos de Ansible.
+#
+# Es el que se entrega a los alumnos el primer día: ansible-core y poco más.
+# Según avanza el curso se van añadiendo colecciones y paquetes AQUÍ, y se
+# reconstruye. Ese es el ejercicio: que vean que el entorno de ejecución es
+# también código y se versiona.
+version: 3
+
+dependencies:
+  ansible_core:
+    package_pip: ansible-core
+  ansible_runner:
+    package_pip: ansible-runner
+  system:
+    - openssh-clients    # sin esto no hay conexión a las máquinas
+    - iproute            # ip a / ip route en las prácticas
+    - iputils            # ping
+  galaxy:
+    collections:
+      - name: ansible.posix
+
+images:
+  base_image:
+    name: registry.fedoraproject.org/fedora:38
