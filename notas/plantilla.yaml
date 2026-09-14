@@ -1,0 +1,312 @@
+
+# YAML Es un lenguaje para estructurar información. Eqivalente/Alternativo a lo que serían JSON o XML.
+# En YAML podemos poner comentarios: ALELUYA! Con el #.. lo que hay detrás se ignora.
+
+# En un fichero YAML puedo tener muchos DOCUMENTOS YAML.
+# En XML o JSON : 1 archvo json o un archivo XML incluye 1 único documento.
+# En yaml dentro de un archivo/fichero, puedo tener muchos documentos.
+# Cada documento comienza por ---, salvo el primero.
+# En ocasiones podéis encontrar un documento con el símbolo ... que indica el final del documento YAML.
+# Eso NUNCA SE DEBE PONER EN UN ARCHIVO: ES DE SER DEMASIADO FRIKI! Y de no entender qué hace eso!
+# Eso existe para cuando se mandan documentos YAML vía streaming.. por ejemplo en una conexión HTTP o en un flujo de datos continuo.
+---
+# Un documento YAML es un NODO.
+# Y hay 2 tipos de nodos en YAML: ESCALARES o DE COLECCION
+# Escalares: Valores sueltos.. de varios subtipos
+...
+# Entre medias de este símbolo de arriba y el de abajo pueden pasar horas. Y necesito decirle al otro que éste documento ya acabó, paar que pueda procesarlo ahora... y no esperar a que llegue el próximo , que puede llegar en 10 minutos.
+---
+# Números
+3
+---
+-17
+---
+3.98
+---
+.Nan # Not a Number #.NAN .nan
+---
+-.Inf # Negative Infinity #-.INF -.inf, en positivo (sin signo) o en negativo.
+---
+# Valores lógicos: Booleanos
+true    # TRUE True 
+---
+false   # FALSE False
+---
+# NOTA IMPORTANTE:
+# En versiones antiguas de YAML (hoy en día estamos en la spec1.2 de YAML), se admitían como booleanos:
+# yes    # YES Yes y
+# no     # NO No n
+# on     # ON On
+# off    # OFF Off
+# ESO SE ELIMINO AL CREAR LA SPEC 1.2... LA CAGARON, debían de haberlo DEPRECADO!Pero no lo hicieron.. directamente lo quitaron de la spec.
+# Como muchos documentos dejaban de poder ser leídos, muchos de los programas que leen YAML los siguen reconociendo como booleanos.
+# En cuanto vea algo como eso, inmediatamentte lo cambio a true o false según corresponda.
+---
+# Textos: CON DIFERENCIA LO MAS COMPLEJO DE YAML!
+Puedo "escribir 'un texto\n 
+
+tal 
+cual, sin #comillas ni na'
+---
+"Puedo \"escribir 'un texto\n 
+
+con 
+comillas #dobles"
+# El b ackSlash, la contrabarra solo funciona como caracter de escape entre comillas dobles.
+# Escapamos: 
+##  \\
+##  \"
+##  \n
+##  \t
+##  \r
+---
+'También " puedo ''escribirlo\n 
+
+con 
+comillas #simples'
+# Yaml ignora los saltos de linea en textos.. los convierte en espacios en blanco
+#.. Siempre y cuando, no ponga dos seguidos.
+# Entonces se interpreta como un salto de línea.
+
+---
+# Ante tanto follón. la convención es simple:
+Siempre escribo los textos SIN COMILLAS, a no ser que sea estrictamente necesario usarlas por llevar dentro # o alguna otra cosa que puede joder
+---
+Y siempre uso estas sinatxis cuando escribo textos de una linea.
+---
+# Para escribir textos de varias lineas, se usan otras 2 sintaxis que da el estandar:
+# Sintaxis Literal:
+|+
+  Este es un texto literal
+  que mantiene los saltos de línea
+  tal cual los escribo.
+  Ese texto puede llevar caracteres especiales como # o comillas sin problemas.
+  " #'\:
+
+  Lo que quiera.. y saltod de linea.. y todo se respeta
+  Lo único que hace yaml es quitar el sangrado de la primera línea al resto.
+
+
+
+
+
+
+
+# OJO... Necesito un buen editor de textois.. VI, VIM, NANO Blok de notas NO VALEN
+# Para crear archivos YAML
+# Un tabulador no es lo mismo que 4 espacios en blanco...
+# Auqneu lo vea igual en la pantalla.
+# si en una linea tengo tabulador y en la siguiente 4 espacios en blanco: ERROR DE SINTAXIS
+# Puedo usar solo tabuladores.. NO PASA NADA.. lo que no puedo es VACILAR AL PROGRAMA QUE LEE EL ARCHIVO-.
+# Un buen editor (como vscode) transforma en automático los tabuladores en espacios en blanco según la configuración.
+
+---
+
+# Sintaxis folded
+> 
+  Funciona parecido a la sintaxis litera.
+  Puedo poner los caracteres especiales como # o comillas sin problemas.
+  " \" ''
+  Lo que ocurre es que los saltos de línea se convierten en espacios en blanco, a menos que haya una línea en blanco entre ellos.
+  USAMOS MUCHO ESTA SINTAXIS PARA COMANDOS
+---
+> 
+ docker container create
+  --name my_container
+  -p 8080:80
+  -v "/host/path:/container/path"
+  -v /another/host/path:/another/container/path
+  -p 443:443
+  -e MY_ENV_VAR=value
+  -e ANOTHER_ENV_VAR=another_value
+  imagen/tag
+---
+# Hay más tipos escalares en YAML... no hablaré de ellos. No los usamos mucho:
+# ~ null
+# Fechas en formato ISO
+# Ejemplo: 2024-06-05T14:30:00Z
+# Binarios: !!binary <base64-encoded-data>
+
+---
+# Colecciones: Listas ordenadas y los mapas desordenados
+# Hay más: Listas desordenadas y mapas ordenados
+# Pero de esos no hablaré.. no los usamos mucho y en Ansible NADA.
+
+# Listas: Secuencias de valores.
+- item 1
+-    22
+-  true
+- # Una nodo/item de una lista puede ser otra lista
+        -     subitem 1
+        - subitem 2
+-
+  - subitemA
+  - subitemB
+- - subitemA # Esto es lo mismo que lo de arriba. Puedo empezar una sublista en la misma linea del item
+  - 
+    - subsubitem
+    - subsubitem2
+---
+# Hay una sintaxis alternativa para listas:
+- item1
+- 34
+- true
+---
+["item1", 33, true] # Eso es válido... Y TOTALMENTE DESACONSEJADO = MALA PRACTICA. NO LO USAMOS
+# Solo existe por compatibilidad con JSON
+# La idea es que YAML Sea 100% compatible con JSON. Dicho de otra forma
+# Un lector de YAML puede leer cualquier archivo JSON válido.
+# Esa es la idea... Hay un caso que no lo cumple.
+
+# Problmas de esa sintaxis: 
+# - Más dicifil de leer
+# - Este archivo acabará en GIT y GIT identifica cambios línea por línea, lo que puede generar conflictos innecesarios.
+
+# Solo hay un escenario legítimo para esa sintaxis:
+---
+[] # Lista vacía. No hay alternativa. Aquí si se usan los corchetes.
+---
+# Mapas desordenados (diccionarios, arrays asociativos, objetos JSON)
+# Colección clave valor.
+clave1:       valor1
+clave2:       33       # Aqui 33, porque 34 no funciona!
+clave3:       true
+clave4:
+            - subitem1
+            - subitem2
+clave5: 
+  subclave1:  valor1
+  subclave2:  valor2
+---
+# OJO: DESORDENADO
+clave1: valor1
+clave2: 33
+clave3: true
+---
+clave2: 33
+clave3: true
+clave1: valor1
+# Desde el punto de vista YAML esos dos documentos son equivalentes, ya que los mapas desordenados no tienen un orden fijo.
+---
+#NOTA: Hay una sintaxis alternativa para mapas desordenados, pero no se usa mucho en YAML.
+# Ejemplo:
+ {clave1: valor1, clave2: 33, clave3: true}
+
+# Esa sintaxis no es muy legible y se recomienda usar la forma estándar de YAML para mapas desordenados.
+# Solo está para compatibilidad con JSON.
+# Mismos problemas que los []: difícil de leer y propenso a conflictos en GIT.
+# Y mismo único caso legítimo es cuando se necesita compatibilidad con JSON.
+---
+{} # Mapa desordenado vacío. No hay alternativa. Aquí si se usan las llaves.
+
+# Y esto es todo lo que tengo que contar de YAML
+---
+# YAML en nombre se aprece a XML o HTML
+#   YAML
+#   HTML
+#    XML
+
+# ML = Markup Language
+# Podríamos pensar que YAML significa Yet Another Markup Language.
+# Pero en realidad significa YAML Ain't Markup Language. Es decir, YAML no es un lenguaje de marcado. No busques aquñi marquitas, no las encontrarás.
+# Esta pensado para humanos.
+
+---
+
+<usuario>
+  <nombre>TuNombre</nombre>
+  <apellido>TuApellido</apellido>
+  <email>TuEmail</email>
+  <edad>TuEdad</edad>
+  <casado>TuEstadoCivil</casado>
+</usuario>
+
+---
+
+{
+  "nombre": "TuNombre",
+  "apellido": "TuApellido",
+  "email": "TuEmail",
+  "edad": "TuEdad",
+  "casado": "TuEstadoCivil"
+}
+
+---
+
+usuario:
+  nombre:   TuNombre
+  apellido: TuApellido
+  email:    TuEmail
+  edad:     TuEdad
+  casado:   TuEstadoCivil
+
+---
+Kubernetes traga YAML
+Docker COMPOSE traga YAML
+Ansible traga YAML
+GITLAB CI/CD traga YAML
+En Ubuntu, la red (netplan) traga YAML
+Springboot, la conf de una app traga YAML
+
+Todo tiende hacia YAML.
+
+---
+
+#YAML Solo declara una sintaxis.
+#Cada programa que usa YAML define su ESQUEMA.
+#Si a ansible le paso:
+usuario:
+  nombre:   TuNombre
+  apellido: TuApellido
+  email:    TuEmail
+  edad:     TuEdad
+  casado:   TuEstadoCivil
+
+# FLIPA: DA UN ERROR DE PELOTAS!
+---
+
+#Archivo de netplan
+
+network:
+    version: 2
+    ethernets:
+      eth0:
+        dhcp4: true
+        nameservers:
+          addresses:
+            - 8.8.8.8
+            - 8.8.4.4
+# Eso el programa netplan de ubuntu se lo traga... Pero si lo paso a ansible, Flipa.
+---
+
+# Playbook de ansible:
+- name: Configurar red
+  hosts: all
+  vars:
+    ansible_network_interfaces: "{{ ansible_facts.interfaces }}"
+  pre_tasks:
+    - name: Mostrar interfaces de red
+      debug:
+        var: ansible_network_interfaces
+  tasks:
+    - name: Configurar red
+      ansible.builtin.include_role:
+        name: configurar_red
+  post_tasks:
+    - name: Mostrar interfaces de red después de configurar la red
+      debug:
+        var: ansible_network_interfaces
+  handlers:
+    - name: Reiniciar red
+      ansible.builtin.service:
+        name: networking
+        state: restarted
+  # Si este archivo se lo paso a netplan FLIPA!
+
+# Cada programa que usaYAML define la estructura concreta que puede tener un documento YAML para ser leído por ese programa.
+# ESO ES LO QUE SE DENOMINA ESQUEMA DE YAML.
+# Se dice que claves pueden usarse, cuales son obligatorias y 
+# cuales son opcionales dentro del esquema de YAML de cada programa, y que tipo de dato admite cada clave.
+
+# Ahora que entendemos la sintaxis de YAML, nuestro siguiente paso es aprender el ESQUEMA YAML que usa ANSIBLE.
+# Y eso es otra cosa!
