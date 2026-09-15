@@ -485,8 +485,6 @@ Cada play es un MAPA (un conjunto de pares clave-valor) que debe/puede contener 
         # delegate_to:  # Especifica un host al que se debe delegar la ejecución de la tarea.
         # run_once:  # Indica si la tarea debe ejecutarse solo una vez, independientemente del número de hosts.
     handlers:   # Que también definirá tareas... pero muy especiales.. con un comportamiento especial.
-
-
 ```
 
 En nuestro caso, tengo preparado un entorno de laboratorio, donde trabajareis.

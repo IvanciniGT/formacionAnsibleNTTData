@@ -1,0 +1,212 @@
+
+# Un playbook es un libro de PLAYs.
+# Cada play es un SCRIPT que vamos a escribir, para su posterior ejecución sobre entornos remotos.
+# Los plays se escriben con lenguaje IMPERATIVO: Como si fueran scripts de la bash.
+# En un documento YAML que contenga un playbook, tendremos una lista de PLAYS:
+
+- name:     Nombre del play (script)
+  hosts:    all
+            #localhost
+            #servidores_nginx (si tengo un grupo de servidores en mi inventario llamado así)
+            #servidor-nginx-17 (si tengo un servidor individual en mi inventario llamado así)
+            # Lo normal es no hacer un uso intensivo y restrictivo de esta etiqueta "hosts"
+            # Esta información solemos entregarla cuando vamos a ejecutar el playbook.
+            # Por ejemplo, si voy a ejecutar el playbook desde linea de comandos:
+            #    $ ansible-playbook mi_playbook.yaml -i mi_inventario --limit servidor-nginx-17
+  gather_facts: false # true
+            # Ayer dije: Siempre en false... Y CUIDADO .. por defecto su valor es TRUE!
+            # Por qué?
+            # Lo que hace gather_facts es recopilar y traer al entorno desde donde ejecuto el play un montón de información
+            # sobre los hosts remotos, como su sistema operativo, direcciones IP, memoria, CPU, etc.
+            # Son muchos datos los que se recopilan.. y es mucho el tiempo que tarda en hacerlo... y este es el problema.
+            # Se me pueden ir fácil 10-20-30 segundos solo en el gather facts.
+            # En muchos casos necesitamos ALGO de información del host remoto, pero no toda.
+            # Cuando esto ocurre, definiremos una tarea dentro del play para recopilar la información EXACTA que necesitamos.
+            # Esto se puede hacer.
+  vars:     # Esto es raro... Se llaman vars... pero en realidad lo usamos para definir CONSTANTES
+            # Habrá veces que en muchas tareas del play necesite ciertos datos...
+            # Para facilitar el mantenimiento y la reutilización de estos datos, los definimos como constantes al inicio del play.
+            # Por ejemplo. Monto un servidor web.. y va a funcionar en el puerto 80.
+            # Tendré una tarea que abrira ese puerto en el firewall (necesita el dato del puerto)
+            # Tendré otra tarea que prueba al final si el servidor contesta (necesita el dato del puerto)
+            # No voy a poner el puerto "80" en cada tarea. Si algún día cambia el puerto 80 -> 81, tendría que cambiarlo en 50 sitios
+            # Con el riesgo de que se me pase alguno. Por eso prefiero definir aquí una CONSTANTE! que pueda ser reutilizada en todas las tareas del play.
+            # El día de mañana puedo cambiar el valor de la constante de 80 -> 81
+            # Pero en el mundo del desarrollo de software distinguimos entre constantes y variables.
+            # Ambas pueden almacenar valores.
+            # Y en ambas puedo cambiar los valores.
+            # La diferencia es CUANDO LOS PUEDO CAMBIAR.
+            # Las variables pueden cambiar de valor en tiempo de ejecución.
+            # Las constantes, en cambio, pueden cambian de valor en tiempo de desarrollo, pero no durante la ejecución del programa.
+            # Habrá veces que SI NECESITE VARIABLES, Datos que van cambiando a lo largo de la ejecución del play
+            # Eso no se define aquí... Ese es otro concepto: FACTS
+    mi_constante:   valor
+    otra_constante: otro_valor
+    puerto: 80
+
+    # PROPIAMENTE EL SCRIPT. El tyrabajo que hay que realizar... las tareas. Y se dividen en 4 bloques:
+    # Por qué separo las tareas en estos 4 bloques? En abse a qué criterio?
+    # De entrada aquí hay 2 grupos diferentes, que tratamos por separado: 
+    # - pre_tasks, tasks, post_tasks
+    # - handlers
+
+    # Pre-tasks, tasks y post-tasks son bloques donde definimos las tareas del playbook.
+    # Se ejecutan en orden. Primero pre_tasks, luego tasks y finalmente post_tasks.
+    # Dentro de cada bloque podré poner una LISTA (ordenada) de tareas, que también se ejecutan en orden.
+    # Y funcionalmente:
+      # pre_tasks:
+      #    - name: "Tarea 1"
+      #    - name: "Tarea 1"
+      # tasks:
+      #    - name: "Tarea 3"
+      #    - name: "Tarea 4"
+      # post_tasks: 
+      #    - name: "Tarea 5"
+      #    - name: "Tarea 6"
+    # El comportamiento sería el mismo que si hubiera definido:
+      # pre_tasks:
+      #    - name: "Tarea 1"
+      #    - name: "Tarea 2"
+      #    - name: "Tarea 3"
+      #    - name: "Tarea 4"
+      #    - name: "Tarea 5"
+      #    - name: "Tarea 6"
+    # O sería el mismo que :
+      # tasks:
+      #    - name: "Tarea 1"
+      #    - name: "Tarea 2"
+      #    - name: "Tarea 3"
+      #    - name: "Tarea 4"
+      #    - name: "Tarea 5"
+      # post_tasks:
+      #    - name: "Tarea 6"
+
+    # Si se comporta igual, por que hay 3 bloques?
+    # Hay 2 custiones a tener en cuenta, a la hora de hacer el reparto:
+    # 1. Lo primero y más importante de todo: Repartir las tareas POR ORDEN CONCEPTUAL, no funcional.
+    #    pre_tasks: tareas que necesito para poder ejecutar lo que el playbook debe hacer: Su misión principal, la razón de su existencia.
+    #    tasks: tareas que constituyen la misión principal del playbook, la razón de su existencia.
+    #    post_tasks: tareas que se ejecutan una vez el playbook ha hecho su cometido: limpiezas, pruebas, notificaciones
+    # 2. Tener en cuenta que los handlers se ejecutan de manera condicional y solo si han sido activados por tareas que han cambiado el estado (CHANGED) y se ejecutan al final de cada bloque: pre_tasks, tasks o post_tasks.
+    #    Eso puede condicionar si una tarea la meto en pre_tasks, tasks o post_tasks. (PROIORIDAD BAJA)
+
+    pre_tasks:
+      - name: Tarea1
+        # Otras cosas que definimos en las tareas:
+        # modulo:    El módulo es un programa PYTHON que ejecuta un trabajo concreto.
+        #            Vienen organizados en Colecciones... Sus nombres son del estilo:    
+        #             - ansible.builtin.yum           ansible.builtin -> Colección 
+        #             - ansible.builtin.copy          yum, copy, service -> Módulo concreto de esa colección
+        #             - ansible.builtin.service       Por defecto, Ansible, al instalarse viene con unas colecciones de módulos básicas
+        #                                             En ocasiones (casi siempre) querremos tener habiliotadas colecciones adicionales de módulos para poder ejecutar tareas más especializadas.
+        #                                             Habrá que instalarlas en el entorno donde ejecutamos el playbook (NODO DE CONTROL)
+        #        argumento1-del-modulo: valor
+        #        argumento2-del-modulo: valor         Cada módulo define sus propias configuraciones. Necesito mirar la documentación de cada módulo cuando lo voy a usar.
+        # Otras etiquetas adicionales (PROPIAS DE ANSIBLE)
+        # when: Me permite poner Un texto con una expresion condicional (IF)... O una lista de CONDICIONES que se juntan con ANDs
+        #       El módulo solo se ejecuta si la condicion (o las condiciones) deveuleven TRUE
+        #       Con que sintaxis se definen esas expresiones? LUEGO LA VEMOS (se llama JINJA)
+        # register: Las tareas, cuando se ejecutan terminan en un estado.
+        #           Pero además pueden dar información adicional. 
+        #           Por ejemplo si ejecuto un comando, puedo querer acceder a la salida estandar del comando que se ejecutó.
+        #           Cada módulo define A QUE DATOS PUEDO ACCEDER auna vez se ha ejecutado el MODULO.
+        #           Para acceder a esos datos, necesito REGISTRAR LA SALIDA DEL MODULO con un nombre.
+        #           Ese nombre es lo que ponemos en register.
+        #           Además de los datos que exporta el módulo, puedo acceder a otra información a través de este nombre, por ejemplo, al estado de la tarea cuando se ejecuta.
+        register: resultado_tarea_1
+        # changed_when: Lo que ponemos aquí es otra expresión booleana (igual que en los when), pero se usa para determinar si la tarea se considera que ha provocado camnios CHANGED o que no los ha provocado: OK
+        # Hay veces que hay tareas que proviocan cambios.. pero no me interesa notificar esos cambios.
+        # Imaginad que una tarea de mi playbook es hacer un "apt update". Esta tarea actualizar los repos de paquetería en busca de nuevos paquetes o nuevas versiones de paquetes.
+        # Esto provoca un cambio en la máquina. Pero si estoy montando un playbook que instala Apache. Y tengo una PRETAREA que es actualizar los repos de la máquina...
+        # Posiblemente no quiera que esta tarea se considere como que ha provocado cambios.
+        # Cuando vea el resumen de ejecución del playbook, me dirá SI HA HABIDO CAMBIOS.. y yo como pendejo, entro a investigar a ver que ha pasado.. y después de 5 minutos buceando en logs... veo que lo unico que se hizo fue un triste apt update. 
+        changed_when: false # Puedo poner cosas más elaboradas como expresión (JINJA)
+        # Similar a changed_when, tenemos failed_when, que nos permite definir una expresión booleana para determinar si la tarea se considera fallida o no.
+        # Cada módulo decide cuándo una tarea se considera fallida de manera predeterminada, pero con failed_when podemos sobrescribir ese comportamiento.
+        # Y en ocasiones me interesará hacerlo.
+        # Ejemplo raro... Quiero verificar que un firewall ha quedado correctamente activado. Que tengo un puerto capado desde fuera de la máquina.
+        # Puedo hacer una prueba que intente conectar desde el nodo de control al puerto del nodo remoto. Debe poder? NO
+        # Si intento conectar la tarea fallará... PERO PARA MI ESE FALLO ES EXITO.
+        # Si puedo conectar (y la tarea se ejecuta de forma exitosa), para mi sería FALLO!
+        # Quiero invertir el comportamiento estantandar. En este caso haría uso de failed_when para definir cuándo considero que la tarea ha fallado.
+        # 
+        # ignore_errors: CONDICION BOOLEANA: Indica si el play debe continuar aun habiendose producido un error en la tarea. Por defecto es false.
+        #
+        # Hay más cosas:
+        # - retries: Número de reintentos en caso de fallo.
+        # - delay: Tiempo de espera entre reintentos.
+        # - until: Condición booleana que debe cumplirse para considerar la tarea exitosa.
+        # - delegate_to: Permite delegar la ejecución de la tarea a otro host.
+        # - run_once: Indica que la tarea debe ejecutarse solo una vez, independientemente del número de hosts.
+        # - loop: Permite iterar sobre una lista de elementos, ejecutando la tarea para cada uno de ellos.
+        # TODAS ESTAS COSAS.. O MUCHAS DE ELLAS LO QUE ME PERMITEN ES COTROLAR EL FLUJO DEL PROGRAMA: Qué debe y qué no ejecutarse bajo ciertas condiciones.
+        # O cuantas veces quiero ejecutar algo. 
+        # SON CONDICIONALES, BUCLES... PROGRMACION IMPERATIVA!
+      - name:     Tarea2
+        when:     resultado_tarea_1 is changed  # is skipped , is failure, is success
+      - name: Bloque de Tareas
+        # En muchas ocasiones, me interesa ir dando mejor estructura al playbook. ESTO ES MUY IMPORTANTE.
+        # Una cosa que podemos usar en los playbooks para ir generando mejor estructyura es AGRUPAR TAREAS.
+        # Hay muchos motivos por los que agrupar tareas:
+        # - Mejorar la legibilidad del playbook. Agrupar tareas que CONCEPTUALOMENTE tiene sentido que vayan juntas
+        # - Porque haya condiciones que afecten a un grupo de tareas. Y no quiero poner a cada tarea los condicionantes.
+        # Para esto usamos los bloques:
+        block:
+          - name: Tarea3.1
+            # modulo o acción que queremos ejecutar en esta tarea
+          - name: Tarea3.2
+            # modulo o acción que queremos ejecutar en esta tarea
+        # Además, cuando trabajo con bloques de tareas, tengo otra cosa... Puedo hacer un mejor control de los errores que ocurren dentro de las tareas de ese bloque.
+        # Y nos salen palabra nuevas de Ansible que podemos usar en los plays:
+        rescue:  # Permite definir un bloque de tareas que se ejecutará si ocurre un error en el bloque principal.
+                 # Estas tareas se ejecutan si y solo si ocurre un error en el bloque principal. (al ejecutarse la tarea Tarea3.1 o Tarea3.2 y fallar)
+          - name: Tarea de rescate 1
+          - name: Tarea de rescate 2
+        always:  # Permite definir un bloque de tareas que se ejecutará siempre, independientemente de si hubo errores o no al ejecutarse las tareas del bloque principal.
+          - name: Tarea siempre 1
+          - name: Tarea siempre 2
+        # En un bloque puedo definir:
+        # when: Condición que debe cumplirse para que se ejecute el bloque de tareas.
+    tasks:
+      - name: Tarea4
+        notify: Handler1 # Nombre de un handler (name)
+      - name: Tarea5
+        notify: EVENTO_1 # Evento. Con eventos, puedo tener que una tarea invoque VARIOS HANDLERS DE UNA
+                         # Además es más descriptivo y deja lastareas menos ACOPLADAS!
+      - name: Tarea6
+        # Esta debe de ir en TODA TAREA:
+        tags: # Me permite asociar etiquetas a las tareas. Esto es una forma de CLASIFICAR LAS TAREAS
+          - etiqueta1
+          - etiqueta2
+          - always
+          - never
+          # Cuando ejecuto un playbook puedo limitar o excluir tareas basadas en sus etiquetas usando la opción --tags o --skip-tags.
+          # $ ansible-playbook playbook.yaml --tags "etiqueta1,etiqueta2"
+          # Cuando usamos --tags, para limitar las tareas que deben ejecutarse... Además de los tags que se especifican, siempre se ejecutan las tareas con el tag "always".
+    post_tasks:
+      - name: Tarea7
+      - name: Tarea8
+
+    # Los handlers son tareas adicionales que pueden ser necesarias en ciertos escenarios. No siempre.
+    # La ejecución de estas tareas esta CONDICIONADA (IF) al resultado de la ejecución de alguna de las tareas definidas en pre_tasks, tasks o post_tasks.
+    # Los handlers son tareas que se ejecutan SOLAMENTE SI:
+    # Han sido ACTIVADOS por una tarea que haya acabado en estado CHANGED.
+    # Un handler, caso de ser activado se ejecuta:
+    # - UNA UNICA VEZ, aunque haya sido activado varias veces
+    # - Y se ejecutan despues de todas las tareas del BLOQUE EN EL QUE HAN SIDO ACTIVADOS: pre_tasks, tasks o post_tasks.
+    #   Es decir, después de los pre_tasks, se ejecutan los handlers activados por algun pre_task. 
+    #   Después de los tasks, se ejecutan los handlers activados por algun task. 
+    #   Y después de los post_tasks, se ejecutan los handlers activados por algun post_task.
+    #  NOTA: Hay un GUARREO que puedo hacer: meta: flush_handlers... que permite FORZAR LA EJECUCION DE LOS HANDLERS EN MEDIO DE UN BLOQUE
+    #        Eso TENDEMOS A NO USARLO. En general indica un MAL DISEÑO del playbook... Solo en casos muy excepcionales y muy justificados y que deben quedar MUY DOCUMENTADOS
+    #        es recomendable usarlo. Mejor, nos olvidamos que existe.
+    # NOTA 2: Hay 2 formas de activar un handler. TENDEMOS A USAR SOLO 1 DE ELLAS. Esn más mantenible y sencilla de usar.
+    #        Activar vía el nombre la la tarea
+    #        Activar vía un evento <<<< GUAY!!!
+    handlers:
+      - name: Handler1
+      - name: Handler2
+        listen: EVENTO_1
+
+
+#- name: Otro play
