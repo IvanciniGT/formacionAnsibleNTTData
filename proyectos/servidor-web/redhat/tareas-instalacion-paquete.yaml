@@ -1,0 +1,43 @@
+# SUPONGO (y esto es una decisión MIA) que  tengo disponible esta estructura de datos:
+
+# package:
+#   name:                httpd
+#   version:
+#     name:              2.4.7
+#     matching:          ">="
+#   repo:
+#     name:
+#     url:  
+#     gpgkey:         ""
+
+- name:               Asegurar que el repo del paquete queda habilitado
+  ansible.builtin.yum_repository:
+    name:             "{{ package.repo.name }}"
+    description:      "{{ package.repo.name }}"
+    baseurl:          "{{ package.repo.url }}"
+    gpgkey:           "{{ package.repo.gpgkey}}"
+    gpgcheck:         "{{ package.repo.gpgkey is defined and package.repo.gpgkey | length > 0 }}"
+    state:            present           # Esto es lo que da la idempotencia
+                                        # Eso mira si ya está e repo y no hace nada
+                                        # Si ya está pero con otra clave vieja.. y la actualiza
+                                        # Si no está ni la clave ni el repo.. y da de alta ambos
+                                        # Si está la clave pero no el repo.. y da de alta el repo
+                                        # Si está la clave y el repo, pero apuntando a otra url, lo actualiza
+  become:             true
+  when:               package.repo is defined                          # Cuando me hayan pasado un repo (pueden no pasarlo)
+                      # Aquí a priori, por ser una expresión JINJA, también deberiamos usar la {{}}
+                      # Pero, Ansible es un listillo.. y como sabe que en un when SIEMPRE PONGO UNA EXPRESION,
+                      # Añade las llaves {{}} automáticamente.
+                      # De hecho, si escribo las llaves falla.
+                      # Esto mismo pasa en otras etiquetas de ansible:
+                      # - changed_when
+                      # - failed_when
+                      # - ignore_errors
+
+- name:               Asegurar que el paquete queda instalado
+  ansible.builtin.dnf:
+    name:             "{{ package.name }} {{ package.version.matching }} {{ package.version.name }}"
+                      # TODO. SI NO PASAN VERSION ESTA EXPRESION FALLARIA
+    state:            present  
+    update_cache:     true
+  become:             true

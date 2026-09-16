@@ -14,13 +14,16 @@
       paquete: 
         redhat:       httpd
         ubuntu:       apache2
+
       dependencias:
-        redhat:       
-          - git
-          - curl
-        ubuntu:       
-          - git
-          - curl
+       - git:
+            version:              2.0.0
+            version_matching:     ">="
+       - curl:
+            version:              3.0.0
+            version_matching:     ">="
+
+
   # become:         true    # Que para todas las tareas del playbook se aplique la elevación de privilegios automáticamente
                             # ESTO ES UNA GUARRADA Y PURA VAGANCIA. No toda tarea requiere privilegios de superusuario
                             # Es un potencial problema de seguridad, ya que cualquier tarea podría ejecutarse con privilegios elevados innecesariamente
@@ -71,6 +74,13 @@
                                 # no consideramos que el sistema haya cambiado desde el punto de vista de este playbook
 
         - name:             Asegurar que las dependencias del playbook están instaladas
+          # COMANDO?/ TRABAJO CONCRETO hay que hacer?
+          # Ubuntu -> apt-get install git -y
+          #             - Cada vez que pasase por aqui, se intentaría instalar..
+          #               Eso está mal.. Aunque.. Aptitude ofrece cierta idempotencia: 
+          #               Si un paquete ya está instalado, no se volverá a instalar
+          # Qué versión del paquete? Nos vale cualquiera?
+          # RHEL   -> dnf (yum)
           become:           true
           changed_when:     false # Aunque se instalen las dependencias, no consideramos que el sistema haya cambiado desde el punto de vista de este playbook
       tags:

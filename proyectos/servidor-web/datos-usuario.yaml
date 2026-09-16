@@ -1,0 +1,20 @@
+apache: 
+  # Versión por defecto, con independencia de la distro
+  version:              2.4.7
+  version_matching:     ">="
+  redhat:
+    # A nivel de cada distro puede forzar otra verisón si lo quiere
+    # version:          2.4.7
+    # version_matching: ">="
+    #repo:
+    #  nombre:
+    #  url:  
+    #  gpgkey:
+  ubuntu:
+    # version:          2.4.7
+    # version_matching: ">="
+    repo:
+      name:
+      url:  
+      gpgkey:           ""
+

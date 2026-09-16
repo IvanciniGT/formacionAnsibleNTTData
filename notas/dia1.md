@@ -473,7 +473,8 @@ Cada play es un MAPA (un conjunto de pares clave-valor) que debe/puede contener 
         plugin_que_la_ejecute: 
             # Estos valores que pongo dentro, no los declara ANSIBLE. Los declara cada PLUGIN.
             # Hay MILES DE ELLOS. Literalmente MILES!
-            # NEcesito estar todo el día enchufado a la documentación de los mismos.
+            # Necesito estar todo el día enchufado a la documentación de los mismos.
+            # En este punto nos ayudan mucho las IAs
             parametyro_configuración_1_del_plugin: valor1
             parametyro_configuración_2_del_plugin: valor2
         # modificadores adicionales que si define ANSIBLE:
