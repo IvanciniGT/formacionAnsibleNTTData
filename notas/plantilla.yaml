@@ -310,3 +310,18 @@ network:
 
 # Ahora que entendemos la sintaxis de YAML, nuestro siguiente paso es aprender el ESQUEMA YAML que usa ANSIBLE.
 # Y eso es otra cosa!
+
+---
+
+# Yaml tiene sintais adicionales a las que he contado aquí:
+!!str true  # El texto true
+
+---
+
+true   # Valor lógico
+---
+"true" # Texto con los caracteres 'true'... igual que podría poner federico
+---
+!!str true   # sería una anotación alternativa a "true"
+
+# El ! es un caracterer reservado de YAML, igual que : > [ { 
