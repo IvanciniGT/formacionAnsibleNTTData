@@ -10,6 +10,8 @@ carpetas_configuracion_apache:
   redhat:       /etc/httpd/conf.d
   ubuntu:       /etc/apache2/sites-enabled
 
+carpeta_backups: /var/apache/backups
+
 # TODO. cambiar este mierderio de variables a una sola consolidada:
 # sistemas_operativos_admitidos: 
 #   ubuntu:
@@ -43,6 +45,9 @@ dependencias:
 #        url:               
 #        gpgkey:            
 - name: git
+  version:
+      name: "2.40.0"
+      matching: ">="
 - name: curl
   version: 
       name: "2.17"

@@ -38,10 +38,48 @@
         - always
 
   post_tasks:
-    # Pruebas
-    - name:           Probar que el servidor contesta llamandolo por curl
+    # Cuando defino pruebas, quiero que sean ATOMICAS: Es decir, que cada prueba pruebe solo una cosa.
+    # Es decir, que si la prueba falle, SEPA PERFECTAMENTE QUE HA FALLADO
+    - name:           Verificar que el servicio de Apache está corriendo
       tags:
         -             pruebas
+
+    - name:           Verificar que el apache ha levantado en el puerto adecuado
+    # wait_for
+      tags:
+        -             pruebas
+
+    - name:           Verificar que el puerto está abierto en el firewall
+    # wait_for
+      tags:
+        -             pruebas
+      ## telnet al puerto.. desde el nodo de control (desde fuera) a ver si llego al puerto
+      ## HOST?        IP
+      ##              example2.com? Y si está mal el DNS o no tengo reistrado ese nombre?
+      ## PUERTO?      80
+
+    - name:           Verificar que llego a la máquina vía domain (compruebo DNS)
+    # ping NO ES LO SUYO
+      # Este modulo no hace ping.. Se conecta a la máquina y mira siu puede ejecutar allí python
+    # shell (y lanzo curl) PERO LO HACEMOS CON ESTE
+      tags:
+        -             pruebas
+
+    - name:           Verificar que la web responde con el contenido que debe
+    # uri                  
+      tags:
+        -             pruebas
+      # haciendo curl.. o mejor usando un módulo de ansible que ya conocemos: uri
+      # darme la url:   "http://example2.com:80/test"
+      # Desde donde lanzo el CURL?
+      # Desde el nodo remoto o desde el nodo de control?? Desde fuera... Desde el nodo de control
+      # Pero las tareas del playbook dónde se ejecutan? EN EL REMOTO.
+      # Esta tarea no querría que se ejecutase en el nodo remoto. El curl no quiero que se lance desde el nodo remoto
+      # Quiero que se lanza desde el nodo de control.
+      # Quiero que esta tarea se ejecute en el nodo de control.
+      delegate_to: localhost
+      # Me permite que una tarea no se ejecute en el nodo remoto, sino en el nodo que me interesa.
+
 
     #- name:          Si las pruebas van bien? Eliminar backups
     # Si la prueba va mal? Rollback? NO...

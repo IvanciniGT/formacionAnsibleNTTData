@@ -36,3 +36,7 @@ aplicacion_a_desplegar:
     </Directory>
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
+  pruebas:
+    - url:                /test
+    - codido_estado:      200
+    - contenido:          Sistema funcionando

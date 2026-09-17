@@ -31,24 +31,101 @@
     dest:                   "{{ carpetas_configuracion_apache[familia_sistema_operativo] }}/despliegue.conf"
     backup:                 true
     mode:                   '0644'
+  vars:
+    puerto:                  "{{ aplicacion_a_desplegar.puerto_apache }}"
+    dominio:                 "{{ aplicacion_a_desplegar.nombre_dominio }}"
+    carpeta:                 "{{ aplicacion_a_desplegar.carpeta_despliegue }}"
+    configuracion_adicional: "{{ aplicacion_a_desplegar.configuracion_apache }}"
   notify:                   CONFIGURACION_DE_APACHE_CAMBIADA # Evento que la tarea lanza CUANDO PROVOCA CAMBIO
   become:                   true
   tags:
     -                       configuracion
 
 
-
-
 # Despliegue del apache
 - name:                 Asegurar que la aplicación web quede desplegada
   block:
+    # En un proyecto real, en lugar de extraero de git, lo extaería de un Registro: NEXUS, ARTIFACTORY
+    # Pero sería el mismo procedimiento, con otro módulo. Y descargaría en una carpeta temporal
+    # Y luego miro si es lo mismo que hay desplegado o no
+    # La diferencia en nuestro caso, es que al trabajar con git, no querremos copiar la carpeta .git
+    - name:             Asegurar que el repositorio de la aplicación web quede clonado en una carpeta temporal en la última versión
+      ansible.builtin.git:
+        repo:           "{{ aplicacion_a_desplegar.repo_git }}"
+        dest:           "/tmp/{{ aplicacion_a_desplegar.nombre_dominio }}"
+        force:          true
+      tags:
+        - despliegue
+
+    - name:             Asegurar que no existe la carpeta .git en el repo descargado
+      ansible.builtin.file:
+        path:           "/tmp/{{ aplicacion_a_desplegar.nombre_dominio }}/.git"
+        state:          absent
+      tags:
+        - despliegue
+
     - name:             Asegurar que la carpeta temporal de despliegue quede creada con los permisos adecuados
-        # /tmp/...
-    - name:             Asegurar que el repositorio de la aplicación web quede clonado en la carpeta de despliegue en la última versión
-    - # Backup de la aplciacion que esté cargada actualmente ... si es que hay nueva versión de la aplciacion
-    - name:             Asegurar que la carpeta de despliegue quede creada con los permisos adecuados
-    - name:             Asegurar que en la carpeta de despliegue tengo los archivos de la aplicación web (sin repositorio git...)
-    
+      ansible.builtin.file:
+        path:           "{{aplicacion_a_desplegar.carpeta_despliegue }}"
+        state:          directory
+        mode:           '0755'
+      become:           true
+      tags:
+        - despliegue
+
+    - name:             Comprueba si los archivos de la aplicación web desplegada coinciden con los que he descargado
+      ansible.posix.synchronize:
+        src:            "/tmp/{{ aplicacion_a_desplegar.nombre_dominio }}/"
+        dest:           "{{ aplicacion_a_desplegar.carpeta_despliegue }}"
+        delete:         true
+        mode:           '0755'
+      check_mode:       true    # Se ejecuta la tarea en modo dry-run. 
+                                # Es decir realmente la tarea NO SE EJECUTA, solo simula los cambios que haría.
+                                # Eso si.. el estado de la tarea lo que reflejará es si habría habido cambios o no
+                                # En caso de que la tarea relamente se hubiera aplicado.
+                                # Esto no hace el RSYNC realmente, solo simula lo que haría.
+                                # NOTA: NO TODOS LOS MODULOS DE ANSIBLE SOPORTAN EL CHECKMODE
+                                # Hay que tener cuidado
+      delegate_to:      "{{ inventory_hostname }}"  # Nodo destino... así la carpeta src se toma del nodo de destino
+      # Cuál es la dirección IP o nombre del nodo de destino en el que estamos ejecutando el playbook: 
+      # Ansible me regala una variable con ese dato: inventory_hostname
+      become:           true
+      register:         sync_result
+      tags:
+        - despliegue
+
+    - name:             Asegurar que la carpeta de backups existe si es necesaria
+      ansible.builtin.file:
+        path:           "{{ carpeta_backups }}"
+        state:          directory
+        mode:           '0755'
+      become:           true
+      tags:
+        - despliegue
+      when:             sync_result is changed
+
+    - name:             Backup de la aplciacion que esté cargada actualmente ... si es que hay nueva versión de la aplciación
+      community.general.archive:
+        path: "{{ aplicacion_a_desplegar.carpeta_despliegue }}"
+        dest: "{{ carpeta_backups }}/{{ aplicacion_a_desplegar.nombre_dominio }}-{{ ansible_date_time.iso8601 }}.tgz"
+      when:             sync_result is changed
+      tags:
+        - despliegue
+
+    - name:             Asegurar que los archivos de la aplicación web desplegada coinciden con los que he descargado
+      ansible.posix.synchronize:
+        src:            "/tmp/{{ aplicacion_a_desplegar.nombre_dominio }}/"
+        dest:           "{{ aplicacion_a_desplegar.carpeta_despliegue }}"
+        delete:         true
+        mode:           '0755'
+      delegate_to:      "{{ inventory_hostname }}"  # Nodo destino... así la carpeta src se toma del nodo de destino
+      # Cuál es la dirección IP o nombre del nodo de destino en el que estamos ejecutando el playbook: 
+      # Ansible me regala una variable con ese dato: inventory_hostname
+      become:           true
+      when:             sync_result is changed
+      tags:
+        - despliegue
+
 
 # Otros (Configuracion del servicio, abrir puertos de firewall)
 
