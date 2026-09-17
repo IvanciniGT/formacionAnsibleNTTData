@@ -1,0 +1,15 @@
+- name:               Cortar la ejecución del playbook si el sistema operativo no es compatible
+  ansible.builtin.meta: end_host # El módulo meta permite cambiar/controlar el FLUJO BASICO de ejecucion de un playbook.
+  when:               familia_sistema_operativo not in sistemas_operativos_admitidos                    # Guay!
+                      #familia_sistema_operativo != "ubuntu" and familia_sistema_operativo != "redhat"  # Cuando el sistema operativo no sea compatible
+  tags:
+    -                 always
+
+
+
+- name:               Cortar la ejecución del playbook si el repositorio no existe
+  ansible.builtin.meta: end_host 
+  # Comprobar que el repositorio existe. Si no existe corto la ejecución de playbook
+  when:               comprobacion_repositorio.status not in range(200, 300) | list
+  tags:
+    -                 despliegue

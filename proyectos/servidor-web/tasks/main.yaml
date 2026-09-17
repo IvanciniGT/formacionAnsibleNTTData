@@ -1,0 +1,70 @@
+
+# Instalación del aapache
+- name:                 Asegurar que el apache queda instalado
+  ansible.builtin.include_tasks:
+  # En nuestro caso no me interesa la distro: 
+  # Las distros son del tipo: "Ubuntu Mint", "XUbuntu", "Rocky", "AlmaLinux".
+  # Lo que me interesa es la familia de la distro: "Ubuntu", "RedHat"
+    file:                   "{{ familia_sistema_operativo }}/tareas-instalacion-paquete.yaml"
+    apply:                  # Añade dinamicamente el tag "instalacion" a todas las tareas incluidas
+      tags:
+        -                   instalacion # Con esto me aseguro que las tareas de dentro del fichero también tengan el tag "instalacion"
+                                        # Para que cuando se solicite que se ejecuten las tareas con el tag "instalacion", también se ejecuten las tareas incluidas en este fichero
+  vars:
+    package:
+      name:                "{{ nombre_paquete_apache[familia_sistema_operativo] }}" # httpd | apache2
+      version:
+        name:              "{{ apache[familia_sistema_operativo].version.name | default(apache.version.name) | default('') }}"
+        matching:          "{{ apache[familia_sistema_operativo].version.matching | default(apache.version.matching) | default('') }}"
+      repo:
+        name:               "{{ apache[familia_sistema_operativo].repo.name | default('') }}"
+        url:                "{{ apache[familia_sistema_operativo].repo.url | default('') }}"
+        gpgkey:             "{{ apache[familia_sistema_operativo].repo.gpgkey | default('') }}"
+  tags:
+    -                       instalacion # Con este tag me aseguro que en caso de que pidan instalacion, se 
+                              # solicite la ejecución de las tareas de dentro de ese fichero
+
+# Configuración del apache
+- name:                 Asegurar que el apache queda configurado
+  ansible.builtin.template:
+    src:                    templates/plantilla-virtual-host.j2
+    dest:                   "{{ carpetas_configuracion_apache[familia_sistema_operativo] }}/despliegue.conf"
+    backup:                 true
+    mode:                   '0644'
+  notify:                   CONFIGURACION_DE_APACHE_CAMBIADA # Evento que la tarea lanza CUANDO PROVOCA CAMBIO
+  become:                   true
+  tags:
+    -                       configuracion
+
+
+
+
+# Despliegue del apache
+- name:                 Asegurar que la aplicación web quede desplegada
+  block:
+    - name:             Asegurar que la carpeta temporal de despliegue quede creada con los permisos adecuados
+        # /tmp/...
+    - name:             Asegurar que el repositorio de la aplicación web quede clonado en la carpeta de despliegue en la última versión
+    - # Backup de la aplciacion que esté cargada actualmente ... si es que hay nueva versión de la aplciacion
+    - name:             Asegurar que la carpeta de despliegue quede creada con los permisos adecuados
+    - name:             Asegurar que en la carpeta de despliegue tengo los archivos de la aplicación web (sin repositorio git...)
+    
+
+# Otros (Configuracion del servicio, abrir puertos de firewall)
+
+- name:                 Asegurar que el apache quede configurado para arranque automático
+  ansible.builtin.service:
+    name:               "{{ nombre_paquete_apache[familia_sistema_operativo] }}"
+    enabled:            true
+  tags:
+    -                   always
+
+- name:                 Asegurar que el puerto del apache queda abierto en el firewall 
+  ansible.builtin.include_tasks:  
+    file:               "{{ familia_sistema_operativo }}/reglas-firewall.yaml"
+    apply:
+      tags:
+        -               always
+  tags:
+    -                   always
+

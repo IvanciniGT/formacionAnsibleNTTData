@@ -1,0 +1,16 @@
+
+- name:                 Asegurar que el puerto del apache queda abierto en el firewall (Redhat)
+  ansible.posix.firewalld:
+    state:              enabled
+    permanent:          true
+    immediate:          true
+    port:                "{{ aplicacion_a_desplegar.puerto_apache }}"
+  tags:
+    -                   always
+
+
+  # Este es el primer módulo que usamos que no es de la colección ansible.builtin.
+  # Pertenece a la colección ansible.posix.
+  # Más nos vale asegurarnos que el entorno donde vamos a ejecytar este playbook 
+  # tiene instalada la colección ansible.posix.
+  # TODO: ASEGURAR ESTO!    

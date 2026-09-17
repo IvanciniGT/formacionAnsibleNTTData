@@ -1,0 +1,53 @@
+
+- name:            Cargar las constantes que necesito para mi playbook
+  ansible.builtin.include_vars:
+    file:          "vars/constantes.yaml"
+  tags:
+    -               always
+
+- name:             Obtener información del sistema operativo del host destino
+  ansible.builtin.setup:
+    gather_subset:      
+      - "!all"          # No traigas todo
+      - "!min"          # Tampoco el mínimo
+      - distribution    # Solo traer información de la distribución del sistema operativo
+  # Este modulo es un poco especial. En cuanto lo ejecuto, Ansible en automático genera una variable llamada: `ansible_facts`
+  # Es una variable de tipo mapa... que contiene todos los datos que se hayan recopilado
+  # Dependiendo de los facts que traiga, ansible_facts tendrá dentro más o menos información sobre el host destino
+  # En nuestro caso hemos pedido información solo de la distribución del sistema operativo
+  # ansible_facts tendrá esta forma:
+  # ansible_facts:
+  #   distribution: "NombreDeLaDistribucion"
+  #   ansible_os_family: "NombreDeLaFamiliaDelSistemaOperativo"
+  #   ansible_distribution_version: "VersionDeLaDistribucionDelSistemaOperativo"
+  #   ansible_distribution: "NombreDeLaDistribucionDelSistemaOperativo"
+
+  # Esto no está muy bien documentado en la documenatción de ansible
+  # Lo mejor es ejecutar el script e imprimir por pantalla lo que contiene la variable `ansible_facts`
+  tags:
+    -               always
+
+# En nuestro caso no me interesa la distro: 
+# Las distros son del tipo: "Ubuntu Mint", "XUbuntu", "Rocky", "AlmaLinux".
+# Lo que me interesa es la familia de la distro: "Ubuntu", "RedHat"
+# Para evitar estar llenando el archivo de {{ ansible_facts.os_family | lower }}, voy a crear una VARIABLE CON ESE DATO
+- name:             Crear variables de uso frecuente 
+  ansible.builtin.set_fact: # Este módulo permite crear VARIABLES (con contenido DINAMICO)... esto es diferente a las vars del PLAY...
+                            # Que ya dijimos que tienen contenido ESTATICO = SON CONSTANTES
+    familia_sistema_operativo:    "{{ ansible_facts.os_family | lower }}"
+  tags:
+    -           always
+
+- name:             Mirar si el repositorio existe
+  # Comprobar que el repositorio existe. Si no existe corto la ejecución de playbook
+  # Esta tarea quiero que siempre acabe en OK, tanto si el repositorio existe como si no existe
+  # Si se puede ejecuatr curl, la tarea ha hecho su trabajo, que es MIRAR si existe
+  ansible.builtin.uri:
+    url:            "{{ aplicacion_a_desplegar.repo_git }}"
+    return_content: false
+    status_code:    "{{ range(200, 300) | list }}" # Me creo una lista con todos los numeros del 200 al 299
+    follow_redirects:   all
+  failed_when:      false
+  register:         comprobacion_repositorio
+  tags:
+    -               despliegue

@@ -1,0 +1,7 @@
+
+- name:                 Asegurar que el puerto del apache queda abierto en el firewall (Ubuntu)
+  ansible.posix.ufw:
+    rule:               allow
+    port:               "{{ aplicacion_a_desplegar.puerto_apache }}"
+  tags:
+    -                   always

@@ -22,7 +22,17 @@ apache:
 
 
 aplicacion_a_desplegar:
-  repo_git: https://github.com/usuario/repositorio.git
-  puerto_apache: 80
-  nombre_dominio: example.com
-  carpeta_despliegue: /var/www/html/app1
+  repo_git:               https://github.com/usuario/repositorio.git
+  puerto_apache:          80
+  nombre_dominio:         example2.com
+  carpeta_despliegue:     /var/www/html/app1
+  configuracion_apache: |
+    # Aquí puedes añadir configuración adicional para el virtual host de Apache
+    # Por ejemplo:
+    <Directory /var/www/html/app1>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined

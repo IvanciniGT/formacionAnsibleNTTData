@@ -38,7 +38,7 @@
 - name:               Asegurar que el paquete queda instalado
   ansible.builtin.dnf:
     name:             "{{ package.name }}{{ (' ' + package.version.matching + ' ' + package.version.name) if package.version is defined else '' }}"
-  #                   httpd                      # TODO. SI NO PASAN VERSION ESTA EXPRESION FALLARIA
+  #                   httpd >= 1.24.7                     # TODO. SI NO PASAN VERSION ESTA EXPRESION FALLARIA
 
     state:            present  
     update_cache:     true

@@ -10,42 +10,8 @@
 
 - name:               Despliegue de servidor web Apache
   hosts:              all
-  vars:               # CONSTANTES
-      sistemas_operativos_admitidos: 
-        - ubuntu
-        - redhat
-
-      nombre_paquete_apache: 
-        redhat:       httpd
-        ubuntu:       apache2
-
-      dependencias:
-      # -  name:                
-      #    version:
-      #      name:              
-      #      matching:          
-      #    redhat:
-      #      version:
-      #        name:              
-      #        matching:          
-      #      repo:
-      #        name:              
-      #        url:               
-      #        gpgkey:            
-      #    ubuntu:
-      #      version:
-      #        name:              
-      #        matching:          
-      #      repo:
-      #        name:              
-      #        url:               
-      #        gpgkey:            
-      - name: git
-      - name: curl
-        version: 
-            name: "2.17"
-            matching: ">="
-          
+  #vars:               # CONSTANTES
+      
   gather_facts:       false
 
   # become:           true    # Que para todas las tareas del playbook se aplique la elevación de privilegios automáticamente
@@ -56,137 +22,20 @@
                               # Elevaré los permisos solo cuando sea estrictamente necesario, usando become en tareas individuales
 
   pre_tasks:
-    - name:                 Obtener información previa a la ejecución del playbook
-      block:
-          
-        - name:             Obtener información del sistema operativo del host destino
-          ansible.builtin.setup:
-            gather_subset:      
-              - "!all"          # No traigas todo
-              - "!min"          # Tampoco el mínimo
-              - distribution    # Solo traer información de la distribución del sistema operativo
-          # Este modulo es un poco especial. En cuanto lo ejecuto, Ansible en automático genera una variable llamada: `ansible_facts`
-          # Es una variable de tipo mapa... que contiene todos los datos que se hayan recopilado
-          # Dependiendo de los facts que traiga, ansible_facts tendrá dentro más o menos información sobre el host destino
-          # En nuestro caso hemos pedido información solo de la distribución del sistema operativo
-          # ansible_facts tendrá esta forma:
-          # ansible_facts:
-          #   distribution: "NombreDeLaDistribucion"
-          #   ansible_os_family: "NombreDeLaFamiliaDelSistemaOperativo"
-          #   ansible_distribution_version: "VersionDeLaDistribucionDelSistemaOperativo"
-          #   ansible_distribution: "NombreDeLaDistribucionDelSistemaOperativo"
-
-          # Esto no está muy bien documentado en la documenatción de ansible
-          # Lo mejor es ejecutar el script e imprimir por pantalla lo que contiene la variable `ansible_facts`
-          tags:
-            -               always
-
-
-        # En nuestro caso no me interesa la distro: 
-        # Las distros son del tipo: "Ubuntu Mint", "XUbuntu", "Rocky", "AlmaLinux".
-        # Lo que me interesa es la familia de la distro: "Ubuntu", "RedHat"
-        # Para evitar estar llenando el archivo de {{ ansible_facts.os_family | lower }}, voy a crear una VARIABLE CON ESE DATO
-        - name:           Crear variables de uso frecuente 
-          ansible.builtin.set_fact: # Este módulo permite crear VARIABLES (con contenido DINAMICO)... esto es diferente a las vars del PLAY...
-                                    # Que ya dijimos que tienen contenido ESTATICO = SON CONSTANTES
-            familia_sistema_operativo:    "{{ ansible_facts.os_family | lower }}"
-          tags:
-            -           always
-
-        - name:             Mirar si el repositorio existe
-          # Comprobar que el repositorio existe. Si no existe corto la ejecución de playbook
-          # Esta tarea quiero que siempre acabe en OK, tanto si el repositorio existe como si no existe
-          # Si se puede ejecuatr curl, la tarea ha hecho su trabajo, que es MIRAR si existe
-          ansible.builtin.uri:
-            url:            "{{ aplicacion_a_desplegar.repo_git }}"
-            return_content: false
-            status_code:    "{{ range(200, 300) | list }}" # Me creo una lista con todos los numeros del 200 al 299
-            follow_redirects:   all
-          failed_when:      false
-          register:         comprobacion_repositorio
-          tags:
-            -               despliegue
-
-    - name:                 Validar condiciones previas antes de ejecutar el playbook
-      block:
-      - name:               Cortar la ejecución del playbook si el sistema operativo no es compatible
-        ansible.builtin.meta: end_host # El módulo meta permite cambiar/controlar el FLUJO BASICO de ejecucion de un playbook.
-        when:               familia_sistema_operativo not in sistemas_operativos_admitidos                    # Guay!
-                            #familia_sistema_operativo != "ubuntu" and familia_sistema_operativo != "redhat"  # Cuando el sistema operativo no sea compatible
-        tags:
-          -                 always
-
-      - name:               Cortar la ejecución del playbook si el repositorio no existe
-        ansible.builtin.meta: end_host 
-        # Comprobar que el repositorio existe. Si no existe corto la ejecución de playbook
-        when:               comprobacion_repositorio.status not in range(200, 300) | list
-        tags:
-          -                 despliegue
-
-    - name:                 Preparativos previos para poder ejecutar el playbook
-      block:
       
-          - name:           Asegurar que la paquetería necesaria para la ejecución del playbook queda instalada
-            ansible.builtin.include_tasks:
-              file:                   "{{ familia_sistema_operativo }}/tareas-instalacion-paquete.yaml"
-              apply:                  
-                tags:
-                  -                   always 
-            vars:
-              package:                "{{ dependencia | combine(dependecia[familia_sistema_operativo]) }}"
-            loop:                     "{{ dependencias }}"
-            loop_control:
-                 # for (item in lista): Hago cosas
-                 # item sería la variable de iteración.. La que va tomando cada uno de los valores de la lista "dependencias"
-                 loop_var:            dependencia
-            tags:
-              -                       always 
-
-  tasks:
-    - name:                 Asegurar que el apache queda instalado
+    - name:                 Pretareas para la ejecución del playbook
       ansible.builtin.include_tasks:
-      # En nuestro caso no me interesa la distro: 
-      # Las distros son del tipo: "Ubuntu Mint", "XUbuntu", "Rocky", "AlmaLinux".
-      # Lo que me interesa es la familia de la distro: "Ubuntu", "RedHat"
-        file:                   "{{ familia_sistema_operativo }}/tareas-instalacion-paquete.yaml"
-        apply:                  # Añade dinamicamente el tag "instalacion" a todas las tareas incluidas
-          tags:
-            -                   instalacion # Con esto me aseguro que las tareas de dentro del fichero también tengan el tag "instalacion"
-                                            # Para que cuando se solicite que se ejecuten las tareas con el tag "instalacion", también se ejecuten las tareas incluidas en este fichero
-      vars:
-        package:
-          name:                "{{ nombre_paquete_apache[familia_sistema_operativo] }}" # httpd | apache2
-          version:
-            name:              "{{ apache[familia_sistema_operativo].version.name | default(apache.version.name) | default('') }}"
-            matching:          "{{ apache[familia_sistema_operativo].version.matching | default(apache.version.matching) | default('') }}"
-          repo:
-            name:               "{{ apache[familia_sistema_operativo].repo.name | default('') }}"
-            url:                "{{ apache[familia_sistema_operativo].repo.url | default('') }}"
-            gpgkey:             "{{ apache[familia_sistema_operativo].repo.gpgkey | default('') }}"
+        file:                   "pre_tasks/main.yaml"
       tags:
-        -                       instalacion # Con este tag me aseguro que en caso de que pidan instalacion, se 
-                                  # solicite la ejecución de las tareas de dentro de ese fichero
+        - always
+  
+  tasks:
 
-    - name:                 Asegurar que el apache queda configurado
-      - # Backup de la configuración del apache que esté aplciada actualmente ... si es que hay nueva configuración disponible
-      - # Y luego ya pondré la nueva configuración ... si es que hay nueva configuración disponible
-
-    - name:                 Asegurar que la aplicación web quede desplegada
-      block:
-        - name:             Asegurar que la carpeta temporal de despliegue quede creada con los permisos adecuados
-            # /tmp/...
-        - name:             Asegurar que el repositorio de la aplicación web quede clonado en la carpeta de despliegue en la última versión
-        - # Backup de la aplciacion que esté cargada actualmente ... si es que hay nueva versión de la aplciacion
-        - name:             Asegurar que la carpeta de despliegue quede creada con los permisos adecuados
-        - name:             Asegurar que en la carpeta de despliegue tengo los archivos de la aplicación web (sin repositorio git...)
-        
-    
-    - name:                 Asegurar que el apache quede configurado para arranque automático
-    
-    - name:                 Asegurar que el puerto del apache queda abierto en el firewall
-      # redhat: firewalld
-      # ubuntu: ufw
-
+    - name:                 Tareas del plabook
+      ansible.builtin.include_tasks:
+        file:                   "tasks/main.yaml"
+      tags:
+        - always
 
   post_tasks:
     # Pruebas
@@ -205,9 +54,14 @@
     # AWX: Definiré un Workflow: Ejecute el playbook de instalar BBDD, Despues el Playbook de Apache + App. Si va mal El playbook de rollback...
 
   handlers:
-    - name:    
-      listen: 
+    - name:                 Reiniciar Apache
+      ansible.builtin.service:
+        name:               "{{ nombre_paquete_apache[familia_sistema_operativo] }}"
+        state:              restarted
+      listen:               
+        -                   CONFIGURACION_DE_APACHE_CAMBIADA
+        -                   NUEVA_VERSION_APP_DESPLEGADA
       tags:
-        - 
+        -                   always
 
 

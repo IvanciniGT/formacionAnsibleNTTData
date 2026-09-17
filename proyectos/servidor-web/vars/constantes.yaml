@@ -1,0 +1,50 @@
+sistemas_operativos_admitidos: 
+  - ubuntu
+  - redhat
+
+nombre_paquete_apache: 
+  redhat:       httpd
+  ubuntu:       apache2
+
+carpetas_configuracion_apache:
+  redhat:       /etc/httpd/conf.d
+  ubuntu:       /etc/apache2/sites-enabled
+
+# TODO. cambiar este mierderio de variables a una sola consolidada:
+# sistemas_operativos_admitidos: 
+#   ubuntu:
+#     apache:
+#       paquete:                    httpd
+#       carpeta_configuracion:      /etc/apache2/sites-enabled
+#   redhat:
+#     apache:
+#       paquete:                    httpd
+#       carpeta_configuracion:      /etc/httpd/conf.d
+
+dependencias:
+# -  name:                git
+#    version:
+#      name:              1.7.6
+#      matching:          >=
+#    redhat:
+#      version:
+#        name:              
+#        matching:          
+#      repo:
+#        name:              
+#        url:               
+#        gpgkey:            
+#    ubuntu:
+#      version:
+#        name:              
+#        matching:          
+#      repo:
+#        name:              
+#        url:               
+#        gpgkey:            
+- name: git
+- name: curl
+  version: 
+      name: "2.17"
+      matching: ">="
+    

@@ -1,0 +1,16 @@
+
+- name:           Asegurar que la paquetería necesaria para la ejecución del playbook queda instalada
+  ansible.builtin.include_tasks:
+    file:                   "{{ familia_sistema_operativo }}/tareas-instalacion-paquete.yaml"
+    apply:                  
+      tags:
+        -                   always 
+  vars:
+    package:                "{{ dependencia | combine(dependecia[familia_sistema_operativo]) }}"
+  loop:                     "{{ dependencias }}"
+  loop_control:
+        # for (item in lista): Hago cosas
+        # item sería la variable de iteración.. La que va tomando cada uno de los valores de la lista "dependencias"
+        loop_var:            dependencia
+  tags:
+    -                       always 
