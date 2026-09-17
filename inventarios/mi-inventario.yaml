@@ -1,0 +1,54 @@
+all:                       # Grupo al que pertenecen todos los hosts /palabra reservada de Ansible
+  hosts:
+    servidor1:
+      ansible_host: 192.168.1.10
+      ansible_user: usuario
+      version_apache: 1.4.2
+      aplicacion_a_desplegar:
+        repo_git: "https://github.com/usuario/repositorio.git"
+        puerto_apache: 80
+        nombre_dominio: "example2.com"
+        carpeta_despliegue: "/var/www/html/app1"
+        configuracion_apache: |
+          <Directory /var/www/html/app1>
+              Options Indexes FollowSymLinks
+              AllowOverride All
+              Require all granted
+          </Directory>
+          ErrorLog ${APACHE_LOG_DIR}/error.log
+          CustomLog ${APACHE_LOG_DIR}/access.log combined
+        pruebas:
+          - url: "/test"
+            codido_estado: 200
+            contenido: "Sistema funcionando"
+    servidor2:
+      ansible_host: 192.168.1.11
+  children:
+    webservers:
+      children:
+        nginx:
+          hosts:
+            nginx[01-20]: {}
+        apache:
+          hosts:
+            apache.desa:
+              ansible_host: apache.desa.miempresa.net
+            apache.test:
+              ansible_host: apache.test.miempresa.net
+            apache.prod:
+              ansible_host: apache.prod.miempresa.net
+          vars:
+            version_apache: 1.42.7
+    vars:
+       ansible_user: usuario
+       ansible_connection: ssh
+
+# Qué os parecen los ficheros YAML de inventario? YO CREO QUE ES PEOR QUE LO DE ANTES
+# Esto es un infierno...
+# - Con tanto tabulador
+# - Con tanto hosts, children y vars
+# - Todo en un archivo... SAURON DE NUEVO
+
+# Solo hay una cosita que me gusta? LAS VARIABLES TIENEN SU GRACIA EN YAML
+
+# RUINA ABSOLUTA!

@@ -81,3 +81,122 @@ ansible.builtin.shell:
 El módulo SHELL que hace? Ejecutar comandos.
 Entiende el módulo SHELL la naturaleza del comando que ejecuta? NO. al módulo YO LE DO UN COMANDO y el lo ejecuta y punto
 No entra a valorar el comando.
+
+---
+
+Hasta ahora hemos estado creando playbooks.
+Pero para trabajar con Ansible necesitamos 2 cosas:
+- Playbooks
+- Inventarios
+
+# Inventarios
+
+Un inventario es una colección "organizada" de entornos sobre los que Ansible va a ejecutar las tareas.
+
+Hay 3 formas de definir inventarios en ansible. Y SOLO UNA ES LA BUENA!
+Y habitualmente la que poca gente conoce.
+
+- Ini
+- YAML
+- Una carpeta! GUAY! Tiene lo bueno de los arhivcos .ini, lo bueno de los .yaml y además organizadito todo en subcarpetas y en archivos chiquitos.
+
+Esos son los formatos que admite ANSIBLE. Y NO HAY MAS.
+
+Ahora... de donde salen esos archivos?
+Esto es otra pregunta.
+- OPCION 1: Los puedo tener escritos en el HDD.
+- OPCION 2: Puedo tener un PROGRAMA que genere los inventarios dinámicamente en esos formatos, que es lo que ansible soporta.
+
+En lugar de un archivo .ini, puedo tener un script BASH, PYTHON que genere el archivo .ini dinámicamente.
+En lugar de un archivo .yaml, puedo tener un script que genere un archivo YAML dinámicamente.
+
+O incluso (SUPER GUAY DE LA MUERTE!) puedo tener una carpeta, donde tenga:
+- Archivos.ini
+- Archivos.yaml
+- Subcarpetas con más archivos.ini y archivos.yaml
+- Mezclados con scripts que generen inventarios dinámicamente
+ESTO ES LO BUENO!
+
+Las máquinas las sacaré de un CMDB (Configuration Management Database), que es donde tengo toda la información de los servidores y sus características.
+Y variables específicas de mis playbooks, las puedo tener en ficheros YAML dentro de la misma carpeta de inventarios o en subcarpetas organizadas.
+
+AWX (Ansible Automation Platform) nos ofrece SCRIPTS PRECREADOS POR LA GENTE DE REDHAT para generar inventarios dinámicament
+desde algunas fuentes estandar:
+- Clouds (AWS, Azure, GCP)
+- VMware
+- ..
+
+---
+
+# DONDE VAMOS A CORRER EL PLAYBOOK? = ENTORNOS DE EJECUCION
+
+En un entorno que hemos llamado NODO DE CONTROL.
+Que tiene que tener instalado:
+- Entorno UNIX-LIKE (Linux, MacOS...)
+- Ansible
+- Python
+- Las colecciones que use en mis tareas
+- Dependencias que necesiten mis playbooks
+
+---
+
+Pregunta. En el entorno (que ponga la empresa) donde esté instalado toda esta mierda... 
+Desde el que se vayan a ejecutar mis playbooks... (= NODO DE CONTROL)
+- Va a estar instalada la colección X que necesita mi playbook A? NPI... ya...
+- Y va a tener la dependencia Y (curl) que necesita mi playbook B? NPI... ya...
+- Y... que versión de ansible va a estar instalada? NPI... ya...
+
+Entonces... que hago?
+- Le pongo perejil a San Pancracio? Y rezo un poquito.. a ver si cuando suba funciona?
+- O me aseguro de que el NODO DE CONTROL tenga todo lo necesario antes de ejecutar mis playbook <<<<< ESTO QUIERO
+
+Pero.. en la empresa me van a dejar instalar LO QUE A MI ME VENGA EN GANA EN UN ENTORNO DONDE TODO EL MUNDO VA A A EJECUTAR SUS PLAYBOOKS?
+Sería razonable? NO
+- Es más.. una persona puede tener unas necesidades y otra persona otras disntintats (incluso incompatibles entre si)
+
+Esta mierda, nos la comíamos cuando empezamos a trabajar con Ansible.. La solución que teníamos era:
+- PONER PEREJIL A SAN PANCRACIO Y REZAR UN POQUITO
+
+Hoy en día por suerte disponemos del concepto de EXECUTION ENVIRONMENTS (ENTORNOS DE EJECUCIÓN)
+
+Un entorno de ejecución es una IMAGEN de contenedor, desde la que se generará un CONTENEDOR donde se ejecutará mi playbook.
+Yo, oh, creador del playbook! no solo creo el playbook, también creo EL ENTORNO DE EJECUCIÓN donde ese playbook correrá.
+
+Esos entornos de ejecución, en local, los puedo gestionar con una herramienta de ansible llamada: ansible-navigator.
+Esos entornos en remoto los gestiona AWX (Ansible Automation Platform).
+
+Crearé un entorno de ejecución en local con ayuda del ansible navigator (en concreto con un programa que viene dentro de ansible-navigator llamado "ansible-builder"
+
+Eso creará una IMAGEN DE CONTENEDOR.
+Esa, la publicaré y la cargaré en un AWX.
+
+Y cuando se configura mi playbook en AWX, le indicaré que use ese ENTORNO DE EJECUCIÓN específico, asegurándome así de que todas las dependencias y colecciones necesarias estén presentes.
+---
+
+# Linux
+
+Kernel de SO.
+
+Es un Sistema Operativo? NO
+Cómo se llama el Sistema operativo? GNU/Linux
+Que se ofrece en forma de distros:
+    - Debian
+    - Ubuntu
+    - CentOS
+    - Fedora
+    - Arch Linux
+
+
+AWX de pruebas / certificacion
+    Inventario de maquinas de juguette
+    Playbook A
+        v
+    Entorno de Ejecución de playbooks 17
+
+    vvv
+
+AWX de producción
+    Inventario de maquinas reales
+    Playbook A
+        v
+    Entorno de Ejecución de playbooks 17
