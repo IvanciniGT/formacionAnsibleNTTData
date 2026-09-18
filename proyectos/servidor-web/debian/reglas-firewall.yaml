@@ -10,7 +10,7 @@
   # Tocar el cortafuegos es de root. Sin esto la tarea falla, y encima falla tarde:
   # después de haber instalado, configurado y desplegado.
   tags:
-    -                   always
+    -                   never
 
   # OJO CON ESTO EN CLASE:
   # ufw guarda la regla aunque el cortafuegos esté DESACTIVADO (que es como viene Debian de serie).
