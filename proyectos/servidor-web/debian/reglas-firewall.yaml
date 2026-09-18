@@ -1,16 +1,16 @@
 
-- name:                 Asegurar que el puerto del apache queda abierto en el firewall (Debian/Ubuntu)
-  community.general.ufw:
-    rule:               allow
-    port:               "{{ aplicacion_a_desplegar.puerto_apache }}"
-    proto:              tcp
+#- name:                 Asegurar que el puerto del apache queda abierto en el firewall (Debian/Ubuntu)
+#  community.general.ufw:
+#    #rule:               allow
+#    port:               "{{ aplicacion_a_desplegar.puerto_apache }}"
+#    proto:              tcp
     # En RedHat el puerto se declara "80/tcp" y aquí el protocolo va en su propio parámetro.
     # Mismo concepto, distinta forma: es justo lo que justifica tener un fichero por familia.
-  become:               true
+#  become:               true
   # Tocar el cortafuegos es de root. Sin esto la tarea falla, y encima falla tarde:
   # después de haber instalado, configurado y desplegado.
-  tags:
-    -                   never
+#  tags:
+#    -                   never
 
   # OJO CON ESTO EN CLASE:
   # ufw guarda la regla aunque el cortafuegos esté DESACTIVADO (que es como viene Debian de serie).
