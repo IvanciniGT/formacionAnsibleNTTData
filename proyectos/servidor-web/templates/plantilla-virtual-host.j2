@@ -1,7 +1,20 @@
+{# El VirtualHost dice "atiende lo que venga por este puerto".                                 -#}
+{# Pero NO abre el puerto: eso lo hace la directiva Listen, y va FUERA del VirtualHost.        -#}
+{# Las distros ya traen puesto el Listen 80 (Debian en ports.conf, RedHat en httpd.conf),      -#}
+{# y un Listen repetido NO es inofensivo: Apache no arranca y dice "Address already in use".   -#}
+{# Por eso lo declaro SOLO cuando el puerto no es de los que ya vienen de serie.               -#}
+{% if puerto | int not in [80, 443] %}
+Listen {{ puerto }}
 
+{% endif %}
 <VirtualHost *:{{ puerto }}>
     ServerName   {{ dominio }}
     DocumentRoot {{ carpeta }}
 
     {{ configuracion_adicional }}
 </VirtualHost>
+{# AVISO PARA REDHAT: con un puerto no estándar esto todavía no basta.                          -#}
+{# SELinux tiene su propia lista de puertos permitidos para httpd, y si el puerto no está       -#}
+{# en ella, Apache no levanta por mucho Listen que le pongamos:                                 -#}
+{#     semanage port -a -t http_port_t -p tcp <puerto>                                          -#}
+{# En Debian no pasa: ahí no hay SELinux de serie.                                              -#}

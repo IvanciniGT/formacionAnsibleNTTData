@@ -1,0 +1,89 @@
+# MISMO CONTRATO DE DATOS que el fichero de redhat. Recibo esto:
+
+# package:
+#   name:                apache2
+#   version:
+#     name:              2.4.7
+#     matching:          ">="
+#   repo:
+#     name:
+#     url:  
+#     gpgkey:         ""
+
+# PERO DE TODO ESO, LO ÚNICO QUE ME PUEDO CREER ES "name".
+# El resto es OPCIONAL: el fichero de vars del usuario es un EJEMPLO, y cada uno lo rellena
+# a su conveniencia. Hay paquetes que no llevan repo (vienen en los repos oficiales de la distro)
+# y paquetes de los que me da igual la versión (quiero el que haya).
+# Además, las dependencias de pre_tasks ni siquiera traen la clave "repo": no existe.
+# Por eso todo lo de abajo pregunta POR EL CONTENIDO, nunca por la existencia.
+#
+# Y una asimetría con RedHat que no se puede disimular:
+# un repo de Debian necesita la SUITE y los COMPONENTES, que allí no existen
+# porque van dentro de la propia URL del repo.
+
+
+# ------------------------------------------------------------------------------------
+# 1. EL REPOSITORIO (solo si me lo dan)
+# ------------------------------------------------------------------------------------
+- name:               Asegurar que el repo del paquete queda habilitado
+  ansible.builtin.deb822_repository:
+    name:             "{{ package.repo.name }}"          # Genera /etc/apt/sources.list.d/<name>.sources
+    types:            deb
+    uris:             "{{ package.repo.url }}"
+    suites:           "{{ package.repo.suite | default(ansible_facts.distribution_release, true) }}"
+    # La SUITE es el nombre en clave de la distro: bookworm, jammy, noble...
+    # Si no me la pasan, asumo la de la máquina que estoy configurando, que es lo razonable.
+    components:       "{{ package.repo.components | default('main', true) }}"
+    signed_by:        "{{ package.repo.gpgkey | default(omit, true) }}"
+    # omit = "haz como si no te hubiera pasado este parámetro".
+    # Un repo puede no llevar clave (uno interno por HTTPS, por ejemplo), y pasarle
+    # cadena vacía NO es lo mismo que no pasárselo: lo primero es un error, lo segundo es el caso normal.
+    # signed_by acepta la URL de la clave, su huella, o el propio bloque ASCII.
+    # Usamos este módulo y no apt_key porque apt_key está DEPRECADO: la clave ya no va
+    # a un llavero global (donde firmaba para TODOS los repos), sino atada al repo que la usa.
+    state:            present
+  become:             true
+  when:               package.repo.name | default('', true) | length > 0
+  # OJO: aquí NO vale "package.repo is defined", que es lo que hace el de redhat.
+  # tasks/main.yaml SIEMPRE construye el mapa repo (con cadenas vacías si no hay repo),
+  # así que ese mapa SIEMPRE está definido y la condición SIEMPRE se cumpliría...
+  # y acabaríamos dando de alta un repositorio sin nombre y sin URL.
+  # Lo que quiero preguntar no es "¿existe el mapa?", sino "¿me han dado un repo de verdad?"
+
+
+# ------------------------------------------------------------------------------------
+# 2. LA INSTALACIÓN
+# ------------------------------------------------------------------------------------
+# apt ENTIENDE ">=", pero con dos condiciones que no perdona:
+#   - PEGADO, sin espacios:     apache2>=2.4.7      (en dnf sí se escribe con espacios)
+#   - y sin comillas alrededor de la versión.
+# Lo bueno de dejarle a él la comparación es que apt compara versiones como dpkg:
+# sabe de epoch (1:2.4.52), de revisiones (-1ubuntu4.9) y de tildes (2.4.62-1~deb12u2).
+# Si ningún candidato del repo cumple, falla solo y bien:
+#   "no available installation candidate for apache2>=2.4.7"
+- name:               Comprobar que el comparador de versión que me piden lo sabe hacer apt
+  ansible.builtin.assert:
+    that:
+      -               comparador in ['=', '>=']
+    fail_msg:         "apt solo sabe de '=' y '>=', y me estáis pidiendo '{{ comparador }}' para {{ package.name }}"
+  vars:
+    comparador:       "{{ package.version.matching | default('=', true) }}"
+  when:               package.version.name | default('', true) | length > 0
+  # Prefiero cortar aquí con un mensaje que se entienda, a que apt intente instalar
+  # un paquete llamado literalmente "apache2>2.4.7" y el error hable de otra cosa.
+
+- name:               Asegurar que el paquete queda instalado
+  ansible.builtin.apt:
+    name:             "{{ package.name }}{{ (comparador ~ version_pedida) if version_pedida | length > 0 else '' }}"
+    #                   apache2>=2.4.7   |   apache2=2.4.52   |   apache2
+    state:            present
+    update_cache:     true
+    cache_valid_time: 3600
+    # No me bajo la lista de paquetes si ya lo hice hace menos de una hora.
+    # Es la diferencia entre un playbook que tarda diez segundos y uno que tarda dos minutos.
+  vars:
+    version_pedida:   "{{ package.version.name | default('', true) }}"
+    comparador:       "{{ package.version.matching | default('=', true) }}"
+    # Si me dan versión pero no comparador, entiendo "=": me están pidiendo ESA.
+    # Si no me dan versión, ni comparador ni nada: el paquete a secas, el que haya en el repo.
+  become:             true

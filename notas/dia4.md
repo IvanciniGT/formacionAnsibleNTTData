@@ -136,7 +136,9 @@ Que tiene que tener instalado:
 - Ansible
 - Python
 - Las colecciones que use en mis tareas
-- Dependencias que necesiten mis playbooks
+- Dependencias que necesiten mis playbooks:
+  - paquetería de SO
+  - módulos de Python necesarios
 
 ---
 
@@ -200,3 +202,44 @@ AWX de producción
     Playbook A
         v
     Entorno de Ejecución de playbooks 17
+
+---
+
+# Qué era UNIX?
+
+Unix era un Sistema Operativo que fabricaba los lab Bell de la amreicana de telco AT&T.
+Dejo de producirse a principios de los 2000.
+AT&T licenciaba UNIX de forma diferente a como hoy en día se licencian los Sistema Operativos. 
+Hoy en día tenemos un EULA (End User License Agreement), que es el acuerdo de licencia que regula el uso de los sistemas operativos modernos.
+
+AT&T licenciaba Unix para empresas, universidades y otras organizaciones bajo términos específicos que variaban según el tipo de licencia.
+
+Grandes fabricantes de computadoras tomaban UNIX y lo adaptaban a su hardware:
+- Commodore -> Amiga
+- Olivetti -> Unix PC
+
+Llevo a haber más de 400 variaciones de Unix (distros y adaptaciones de hardware).
+Y presentaban incompatibilidades entre sí.
+
+Salieron 2 estandares para poner control a cómo debían evolucionar esas distros:
+    - POSIX (Portable Operating System Interface)
+    - Single UNIX Specification (SUS)
+
+# Qué es UNIX?
+
+Hoy en día un SO Unix es un Sistema que cumple con los estándares POSIX y la Especificación Única de UNIX (SUS).
+
+HP: HP-UX (Unix®)
+IBM: AIX (Unix®)
+Oracle: Solaris (Unix®)
+Apple: macOS (Unix®)
+
+Luego hay sistemas operativos que parece (creemos) que cumplen con esos estándares, aunque no estén oficialmente certificados como Unix:
+    - BSD
+    - GNU/Linux
+
+Cuando nos referimos a SO Unix-like, nos referimos a sistemas operativos que cumplan (o que supuestamente cumplan) con esos estándares.
+
+POSIX:
+Se define el concpto de la SH, los comandos ls, cp, cat. y otras utilidades básicas que deben estar presentes en un sistema compatible con POSIX.
+

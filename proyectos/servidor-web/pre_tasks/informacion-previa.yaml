@@ -11,6 +11,10 @@
       - "!all"          # No traigas todo
       - "!min"          # Tampoco el mínimo
       - distribution    # Solo traer información de la distribución del sistema operativo
+      - date_time       # Y la fecha/hora DEL NODO REMOTO: la usamos para nombrar el fichero de backup
+                        # (tasks/main.yaml -> ansible_date_time.iso8601).
+                        # Con gather_facts: false, si no lo pido aquí, esa variable no existe
+                        # y el backup revienta el día que de verdad haya cambios.
   # Este modulo es un poco especial. En cuanto lo ejecuto, Ansible en automático genera una variable llamada: `ansible_facts`
   # Es una variable de tipo mapa... que contiene todos los datos que se hayan recopilado
   # Dependiendo de los facts que traiga, ansible_facts tendrá dentro más o menos información sobre el host destino

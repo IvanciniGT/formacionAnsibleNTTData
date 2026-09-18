@@ -1,0 +1,24 @@
+
+- name:                 Asegurar que el puerto del apache queda abierto en el firewall (Debian/Ubuntu)
+  ansible.posix.ufw:
+    rule:               allow
+    port:               "{{ aplicacion_a_desplegar.puerto_apache }}"
+    proto:              tcp
+    # En RedHat el puerto se declara "80/tcp" y aquí el protocolo va en su propio parámetro.
+    # Mismo concepto, distinta forma: es justo lo que justifica tener un fichero por familia.
+  become:               true
+  # Tocar el cortafuegos es de root. Sin esto la tarea falla, y encima falla tarde:
+  # después de haber instalado, configurado y desplegado.
+  tags:
+    -                   always
+
+  # OJO CON ESTO EN CLASE:
+  # ufw guarda la regla aunque el cortafuegos esté DESACTIVADO (que es como viene Debian de serie).
+  # Es decir: esta tarea puede salir en verde y el puerto estar abierto... porque no hay nadie vigilando.
+  # No lo activo yo desde aquí a propósito: activar un cortafuegos en una máquina
+  # a la que estoy conectado por SSH es la forma clásica de quedarse fuera.
+  # Esa decisión es del que administra la máquina, no de mi playbook de instalar apache.
+
+  # Y como en el de redhat: ansible.posix.ufw NO es de ansible.builtin.
+  # La colección ansible.posix tiene que estar en el entorno de ejecución.
+  # TODO: ASEGURAR ESTO! (esto se resuelve en el execution-environment del día 5)

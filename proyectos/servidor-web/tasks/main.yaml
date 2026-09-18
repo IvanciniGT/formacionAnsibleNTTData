@@ -14,12 +14,12 @@
     package:
       name:                "{{ nombre_paquete_apache[familia_sistema_operativo] }}" # httpd | apache2
       version:
-        name:              "{{ apache[familia_sistema_operativo].version.name | default(apache.version.name) | default('') }}"
-        matching:          "{{ apache[familia_sistema_operativo].version.matching | default(apache.version.matching) | default('') }}"
+        name:              "{{ apache[familia_sistema_operativo].version.name | default(apache.version.name) | default('', true) }}"
+        matching:          "{{ apache[familia_sistema_operativo].version.matching | default(apache.version.matching) | default('', true) }}"
       repo:
-        name:               "{{ apache[familia_sistema_operativo].repo.name | default('') }}"
-        url:                "{{ apache[familia_sistema_operativo].repo.url | default('') }}"
-        gpgkey:             "{{ apache[familia_sistema_operativo].repo.gpgkey | default('') }}"
+        name:               "{{ apache[familia_sistema_operativo].repo.name | default('', true) }}"
+        url:                "{{ apache[familia_sistema_operativo].repo.url | default('', true) }}"
+        gpgkey:             "{{ apache[familia_sistema_operativo].repo.gpgkey | default('', true) }}"
   tags:
     -                       instalacion # Con este tag me aseguro que en caso de que pidan instalacion, se 
                               # solicite la ejecución de las tareas de dentro de ese fichero
@@ -40,7 +40,6 @@
   become:                   true
   tags:
     -                       configuracion
-
 
 # Despliegue del apache
 - name:                 Asegurar que la aplicación web quede desplegada
@@ -64,7 +63,7 @@
       tags:
         - despliegue
 
-    - name:             Asegurar que la carpeta temporal de despliegue quede creada con los permisos adecuados
+    - name:             Asegurar que la carpeta de despliegue quede creada con los permisos adecuados
       ansible.builtin.file:
         path:           "{{aplicacion_a_desplegar.carpeta_despliegue }}"
         state:          directory
@@ -78,7 +77,6 @@
         src:            "/tmp/{{ aplicacion_a_desplegar.nombre_dominio }}/"
         dest:           "{{ aplicacion_a_desplegar.carpeta_despliegue }}"
         delete:         true
-        mode:           '0755'
       check_mode:       true    # Se ejecuta la tarea en modo dry-run. 
                                 # Es decir realmente la tarea NO SE EJECUTA, solo simula los cambios que haría.
                                 # Eso si.. el estado de la tarea lo que reflejará es si habría habido cambios o no
@@ -108,6 +106,17 @@
       community.general.archive:
         path: "{{ aplicacion_a_desplegar.carpeta_despliegue }}"
         dest: "{{ carpeta_backups }}/{{ aplicacion_a_desplegar.nombre_dominio }}-{{ ansible_date_time.iso8601 }}.tgz"
+      become:           true    # Escribe en {{ carpeta_backups }}, que es de root
+      when:             sync_result is changed
+      tags:
+        - despliegue
+
+    - name:             Caso que vayamos a desplegar una nueva versión de la aplicación, parar el servicio antes de actualizar
+      # De hecho, tampoco deberíamos hacer esto... Puede ser que haya otros virtual hosts corriendo en el mismo servidor.
+      # Deberiamos solo de desactivar el virtual host correspondiente a la aplicación que vamos a actualizar.
+      ansible.builtin.debug:
+        msg: "TODO: Aquí deberíamos parar el virtual host de la aplicación que vamos a actualizar"
+      become:           true
       when:             sync_result is changed
       tags:
         - despliegue
@@ -117,10 +126,10 @@
         src:            "/tmp/{{ aplicacion_a_desplegar.nombre_dominio }}/"
         dest:           "{{ aplicacion_a_desplegar.carpeta_despliegue }}"
         delete:         true
-        mode:           '0755'
       delegate_to:      "{{ inventory_hostname }}"  # Nodo destino... así la carpeta src se toma del nodo de destino
       # Cuál es la dirección IP o nombre del nodo de destino en el que estamos ejecutando el playbook: 
       # Ansible me regala una variable con ese dato: inventory_hostname
+      notify:           NUEVA_VERSION_APP_DESPLEGADA
       become:           true
       when:             sync_result is changed
       tags:
@@ -129,10 +138,19 @@
 
 # Otros (Configuracion del servicio, abrir puertos de firewall)
 
-- name:                 Asegurar que el apache quede configurado para arranque automático
+- name:                 Asegurar que el apache quede configurado para arranque automático (para el siguiente reinicio)
   ansible.builtin.service:
     name:               "{{ nombre_paquete_apache[familia_sistema_operativo] }}"
     enabled:            true
+  become:               true
+  tags:
+    -                   always
+
+- name:                 Asegurar que el apache quede arrancado
+  ansible.builtin.service:
+    name:               "{{ nombre_paquete_apache[familia_sistema_operativo] }}"
+    state:              started
+  become:               true
   tags:
     -                   always
 

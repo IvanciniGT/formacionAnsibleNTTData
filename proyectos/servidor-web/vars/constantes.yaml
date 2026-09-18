@@ -1,20 +1,20 @@
 sistemas_operativos_admitidos: 
-  - ubuntu
+  - debian
   - redhat
 
 nombre_paquete_apache: 
   redhat:       httpd
-  ubuntu:       apache2
+  debian:       apache2
 
 carpetas_configuracion_apache:
   redhat:       /etc/httpd/conf.d
-  ubuntu:       /etc/apache2/sites-enabled
+  debian:       /etc/apache2/sites-enabled
 
 carpeta_backups: /var/apache/backups
 
 # TODO. cambiar este mierderio de variables a una sola consolidada:
 # sistemas_operativos_admitidos: 
-#   ubuntu:
+#   debian:
 #     apache:
 #       paquete:                    httpd
 #       carpeta_configuracion:      /etc/apache2/sites-enabled
@@ -36,7 +36,7 @@ dependencias:
 #        name:              
 #        url:               
 #        gpgkey:            
-#    ubuntu:
+#    debian:
 #      version:
 #        name:              
 #        matching:          
@@ -44,12 +44,25 @@ dependencias:
 #        name:              
 #        url:               
 #        gpgkey:            
+# CRITERIO PARA LAS VERSIONES (y esto es lo que hay que entender, no el número):
+# Aquí NO se pone la última versión que ha salido. Se pone LA MÍNIMA QUE NECESITO.
+# Y como este playbook tiene que funcionar en las cuatro distros que soportamos,
+# el suelo es la más vieja de todas: si pido más, dejo fuera a una distro perfectamente válida.
+#
+#            Ubuntu 22.04   Debian 12   Rocky 8   Rocky 9     -> suelo
+#   git        2.34.1         2.39        2.43      2.43         2.34
+#   curl       7.81           7.88        7.61      7.76         7.61
+#
+# Pedir "git >= 2.40" (que es lo que había) deja fuera a Ubuntu 22.04 y a Debian 12,
+# que son justo las dos máquinas donde se prueba esto en clase.
 - name: git
   version:
-      name: "2.40.0"
+      name: "2.34.0"
       matching: ">="
 - name: curl
+  # OJO: hoy el playbook NO usa curl para nada (las llamadas HTTP van con el módulo uri,
+  # que usa python, no curl). Se queda como segundo ejemplo del bucle de dependencias.
   version: 
-      name: "2.17"
+      name: "7.61.0"
       matching: ">="
     

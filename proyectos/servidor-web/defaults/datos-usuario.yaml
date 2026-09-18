@@ -1,7 +1,11 @@
 apache: 
-  # Versión por defecto, con independencia de la distro
+  # Versión por defecto, con independencia de la distro.
+  # 2.4.37 es lo que trae Rocky/RHEL 8, la más vieja de las que soportamos.
+  # (Ubuntu 22.04 trae 2.4.52, Rocky 9 trae 2.4.57 y Debian 12 trae 2.4.68: todas cumplen)
+  # El 2.4.7 que había aquí no era un mínimo real, era un número: lo cumple cualquier
+  # apache de los últimos diez años, así que no protegía de nada.
   version:
-    name:              2.4.7
+    name:              2.4.37
     matching:         ">="
   redhat:
     # A nivel de cada distro puede forzar otra verisón si lo quiere
@@ -12,7 +16,7 @@ apache:
     #  name:
     #  url:  
     #  gpgkey:
-  ubuntu:
+  debian:
     # version:          2.4.7
     # version_matching: ">="
     repo:
@@ -34,9 +38,7 @@ aplicacion_a_desplegar:
         AllowOverride All
         Require all granted
     </Directory>
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
   pruebas:
     - url:                /test
-    - codido_estado:      200
-    - contenido:          Sistema funcionando
+      codigo_estado:      200
+      contenido:          Sistema funcionando

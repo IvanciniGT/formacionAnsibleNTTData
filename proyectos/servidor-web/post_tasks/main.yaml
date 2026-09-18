@@ -1,0 +1,145 @@
+
+  # Cuando defino pruebas, quiero que sean ATOMICAS: Es decir, que cada prueba pruebe solo una cosa.
+# Es decir, que si la prueba falle, SEPA PERFECTAMENTE QUE HA FALLADO
+
+# Y de ahí una consecuencia que se nos olvida siempre: RECOGER UN DATO NO ES UNA PRUEBA.
+# Si mezclo "obtener el estado de los servicios" con "comprobar que apache está corriendo",
+# cuando la tarea falle no sabré si es que apache está parado o que no he podido ni preguntarlo.
+- name:           Obtener el estado de los servicios del nodo remoto
+  ansible.builtin.service_facts:
+  # Este módulo rellena ansible_facts.services con un mapa: "httpd.service" -> { state, status, name }
+  tags:
+    -             pruebas
+
+- name:           Verificar que el servicio de Apache está corriendo
+  ansible.builtin.assert:
+    that:
+      -           (ansible_facts.services[servicio_apache].state | default('desconocido')) == 'running'
+      # El default no es decorativo: si el servicio ni siquiera existe, sin él la prueba
+      # reventaría con un error de variable indefinida en vez de fallar diciendo qué pasa.
+    fail_msg:     "El servicio {{ servicio_apache }} NO está corriendo en {{ inventory_hostname }}"
+    success_msg:  "El servicio {{ servicio_apache }} está corriendo"
+  vars:
+    # En systemd los servicios se apellidan ".service": httpd.service | apache2.service
+    servicio_apache:  "{{ nombre_paquete_apache[familia_sistema_operativo] }}.service"
+  tags:
+    -             pruebas
+
+- name:           Verificar que el apache ha levantado en el puerto adecuado
+# wait_for
+  ansible.builtin.wait_for:
+    host:         127.0.0.1
+    # Desde DENTRO del propio nodo, a propósito: aquí solo pruebo que apache escucha.
+    # El firewall es la prueba siguiente, y son dos cosas distintas.
+    port:         "{{ aplicacion_a_desplegar.puerto_apache }}"
+    state:        started
+    timeout:      10
+    # El timeout por defecto son 300 segundos. Si el apache acaba de arrancar y en 10s no escucha,
+    # es que no va a escuchar: no quiero que el playbook se quede 5 minutos mirando a la pared.
+  tags:
+    -             pruebas
+
+- name:           Verificar que el puerto está abierto en el firewall
+# wait_for
+  ansible.builtin.wait_for:
+    host:         "{{ ansible_host | default(inventory_hostname) }}"
+    port:         "{{ aplicacion_a_desplegar.puerto_apache }}"
+    state:        started
+    timeout:      10
+  delegate_to:    localhost
+  tags:
+    -             pruebas
+  ## telnet al puerto.. desde el nodo de control (desde fuera) a ver si llego al puerto
+  ## HOST?        IP
+  ##              example2.com? Y si está mal el DNS o no tengo reistrado ese nombre?
+  ##              Por eso ataco a la IP: si usara el dominio y fallase, no sabría si el problema
+  ##              es el firewall o el DNS. Y la prueba dejaría de ser atómica.
+  ## PUERTO?      80
+
+- name:           Verificar que llego a la máquina vía domain (compruebo DNS)
+# ping NO ES LO SUYO
+  # Este modulo no hace ping.. Se conecta a la máquina y mira siu puede ejecutar allí python
+# shell (y lanzo curl) PERO LO HACEMOS CON ESTE
+  ansible.builtin.command:
+    cmd:          "getent hosts {{ aplicacion_a_desplegar.nombre_dominio }}"
+    # No uso shell porque no hay tuberías ni redirecciones: command es más seguro.
+    # Y no uso curl porque curl prueba DNS + TCP + HTTP a la vez. Aquí SOLO quiero el DNS.
+    # getent devuelve código 2 si el nombre no resuelve => la tarea falla sola. Eso ya es la prueba.
+  register:       resolucion_dns
+  changed_when:   false
+  # Preguntar no cambia nada. Si no lo digo, Ansible da la tarea por "changed" en cada ejecución
+  # y me destroza la idempotencia del informe.
+  delegate_to:    localhost
+  # El DNS que me importa es el de FUERA, el que va a usar el cliente. No el del propio servidor.
+  tags:
+    -             pruebas
+
+# EJERCICIO: no basta con que el dominio resuelva; tiene que resolver CONTRA ESTA MÁQUINA.
+# Si resuelve a otra IP, las pruebas de abajo estarían aprobando la web de otro.
+# Lo dejo comentado porque solo vale si en el inventario tengo IPs y no nombres.
+# - name:         Verificar que el dominio resuelve contra la máquina que acabo de configurar
+#   ansible.builtin.assert:
+#     that:
+#       -         (ansible_host | default(inventory_hostname)) in resolucion_dns.stdout
+#     fail_msg:   "{{ aplicacion_a_desplegar.nombre_dominio }} resuelve a otra máquina: {{ resolucion_dns.stdout }}"
+#   tags:
+#     -           pruebas
+
+# "pruebas" es una LISTA: cada elemento es una prueba completa con sus tres campos.
+# pruebas:
+#   - url:            /test
+#     codigo_estado:  200
+#     contenido:      Sistema funcionando
+# Que sea lista no cambia la prueba, solo cuántas veces la lanzo: de eso se encarga el loop.
+- name:           Verificar que la web responde con el contenido que debe
+# uri                  
+  ansible.builtin.uri:
+    url:          "http://{{ aplicacion_a_desplegar.nombre_dominio }}:{{ aplicacion_a_desplegar.puerto_apache }}{{ prueba.url }}"
+    status_code:  "{{ prueba.codigo_estado }}"
+    return_content: true
+    # Si no pido el contenido, no puedo comprobarlo después.
+  register:       respuesta_web
+  loop:           "{{ aplicacion_a_desplegar.pruebas }}"
+  loop_control:
+    loop_var:     prueba
+    # Le pongo nombre propio a la variable de iteración en vez de usar "item":
+    # así abajo, al recorrer los resultados, se lee qué es cada cosa.
+    label:        "{{ prueba.url }}"
+    # Para que el log muestre "/test" y no el mapa entero de la prueba.
+  tags:
+    -             pruebas
+  # haciendo curl.. o mejor usando un módulo de ansible que ya conocemos: uri
+  # darme la url:   "http://example2.com:80/test"
+  # Desde donde lanzo el CURL?
+  # Desde el nodo remoto o desde el nodo de control?? Desde fuera... Desde el nodo de control
+  # Pero las tareas del playbook dónde se ejecutan? EN EL REMOTO.
+  # Esta tarea no querría que se ejecutase en el nodo remoto. El curl no quiero que se lance desde el nodo remoto
+  # Quiero que se lanza desde el nodo de control.
+  # Quiero que esta tarea se ejecute en el nodo de control.
+  delegate_to: localhost
+  # Me permite que una tarea no se ejecute en el nodo remoto, sino en el nodo que me interesa.
+  # Esta tarea comprueba el CÓDIGO DE ESTADO: de eso se encarga status_code, si no coincide, falla.
+  # El contenido lo comprueba la tarea de abajo. Otra vez lo mismo: una prueba, una cosa.
+
+- name:           Verificar que cada respuesta trae el contenido esperado
+  ansible.builtin.assert:
+    that:
+      -           resultado.prueba.contenido in resultado.content
+      # Al registrar una tarea con loop, respuesta_web.results trae un elemento por vuelta,
+      # y dentro de cada uno viene la prueba que lo originó, con el nombre que le di al loop_var.
+    fail_msg:     "{{ resultado.prueba.url }} respondió {{ resultado.status }} pero no contiene '{{ resultado.prueba.contenido }}'"
+    success_msg:  "{{ resultado.prueba.url }} contiene '{{ resultado.prueba.contenido }}'"
+  loop:           "{{ respuesta_web.results }}"
+  loop_control:
+    loop_var:     resultado
+    label:        "{{ resultado.prueba.url }}"
+  tags:
+    -             pruebas
+
+
+#- name:          Si las pruebas van bien? Eliminar backups
+# Si la prueba va mal? Rollback? NO...
+# Si hay que hacer rollback... eso es otro trabajo.... que puede tener otras implicaciones.
+# Mi playbook INSTALA. SI FALLA AVISA!
+# Y ya otro se encargaré de lo que tenga que hacer: REPARTO DE TAREAS. Si no acabo con un playbook de cojones.
+# Eso si.. mi playbook , al instalar, por si falla, hace backups... para que el que venga detrás tenga de donde tirar!

@@ -14,9 +14,11 @@
   ansible.builtin.yum_repository:
     name:             "{{ package.repo.name }}"
     description:      "{{ package.repo.name }}"
-    baseurl:          "{{ package.repo.url }}"
-    gpgkey:           "{{ package.repo.gpgkey }}"
-    gpgcheck:         "{{ (package.repo.gpgkey is defined) and ((package.repo.gpgkey | length) > 0 )}}"
+    baseurl:          "{{ package.repo.url | default('', true) }}"
+    gpgkey:           "{{ package.repo.gpgkey | default(omit, true) }}"
+    # omit = "haz como si no te hubiera pasado este parámetro". Un repo puede no llevar clave,
+    # y pasarle cadena vacía NO es lo mismo que no pasársela.
+    gpgcheck:         "{{ package.repo.gpgkey | default('', true) | length > 0 }}"
     state:            present           # Esats 6 lineas dentro del módulo son lenguaje DECLARATIVO
                                         # Esto es lo que da la idempotencia
                                         # Eso mira si ya está e repo y no hace nada
@@ -25,7 +27,13 @@
                                         # Si está la clave pero no el repo.. y da de alta el repo
                                         # Si está la clave y el repo, pero apuntando a otra url, lo actualiza
   become:             true
-  when:               package.repo is defined                          # Cuando me hayan pasado un repo (pueden no pasarlo)
+  when:               package.repo.name | default('', true) | length > 0   # Cuando me hayan pasado un repo (pueden no pasarlo)
+                      # OJO: "package.repo is defined" NO vale, y es lo que había aquí.
+                      # tasks/main.yaml SIEMPRE construye el mapa repo (con cadenas vacías si no hay),
+                      # así que ese mapa SIEMPRE está definido y esto SIEMPRE se cumplía:
+                      # acabábamos dando de alta un repositorio sin nombre y sin URL.
+                      # Y las dependencias de pre_tasks ni siquiera traen la clave "repo".
+                      # La pregunta buena no es "¿existe el mapa?" sino "¿me han dado un repo de verdad?"
                       # Aquí a priori, por ser una expresión JINJA, también deberiamos usar la {{}}
                       # Pero, Ansible es un listillo.. y como sabe que en un when SIEMPRE PONGO UNA EXPRESION,
                       # Añade las llaves {{}} automáticamente.
@@ -37,8 +45,13 @@
 
 - name:               Asegurar que el paquete queda instalado
   ansible.builtin.dnf:
-    name:             "{{ package.name }}{{ (' ' + package.version.matching + ' ' + package.version.name) if package.version is defined else '' }}"
-  #                   httpd >= 1.24.7                     # TODO. SI NO PASAN VERSION ESTA EXPRESION FALLARIA
+    name:             "{{ package.name }}{{ (' ' + (package.version.matching | default('=', true)) + ' ' + package.version.name) if (package.version.name | default('', true) | length > 0) else '' }}"
+  #                   httpd >= 1.24.7
+  # El TODO de "si no pasan version esto falla" ya está resuelto por los | default de la expresión:
+  # si no hay version.name (o no hay ni "version"), la condición del if es falsa y queda "httpd" a secas.
+  # Comprobado con las dos formas: sin clave version y con version vacía.
+  # Aquí los espacios SÍ van: dnf resuelve "httpd >= 2.4.7" como una capability.
+  # En apt es justo al revés y hay que pegarlo: apache2>=2.4.7. Misma idea, sintaxis contraria.
 
     state:            present  
     update_cache:     true

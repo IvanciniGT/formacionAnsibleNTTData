@@ -1,0 +1,23 @@
+
+- name:                     Asegurar que la paquetería necesaria para la ejecución del playbook queda instalada
+  ansible.builtin.include_tasks:
+    file:                   "{{ familia_sistema_operativo }}/tareas-instalacion-paquete.yaml"
+    apply:                  
+      tags:
+        -                   always 
+  vars:
+    package:                "{{ dependencia | combine(dependencia[familia_sistema_operativo] | default({}, true)) }}"
+    # Dos cosas que fallaban aquí:
+    #   1. "dependecia" iba sin la n. Variable indefinida, y el playbook no pasaba de aquí.
+    #   2. Una dependencia NO TIENE POR QUÉ traer sus claves por familia: git y curl no las traen,
+    #      y sin el default({}, true) el combine reventaba con
+    #      "object of type 'dict' has no attribute 'redhat'".
+    # El default({}, true) dice: si no hay nada para esta familia, combina con un mapa vacío,
+    # es decir, quédate con lo general. Que es justo lo que quiero.
+  loop:                     "{{ dependencias }}"
+  loop_control:
+        # for (item in lista): Hago cosas
+        # item sería la variable de iteración.. La que va tomando cada uno de los valores de la lista "dependencias"
+        loop_var:            dependencia
+  tags:
+    -                       always

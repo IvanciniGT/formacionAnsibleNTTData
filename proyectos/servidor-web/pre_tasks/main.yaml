@@ -1,20 +1,20 @@
 
-- name:                 Preparar la información previa a la ejecución del playbook
+- name:                           Preparar la información previa a la ejecución del playbook
   ansible.builtin.include_tasks:
-    file:                   "informacion-previa.yaml"
-    tags:
-      -                   always
+    file:                         informacion-previa.yaml
+  tags:
+    -                             always
 
 
-- name:                 Validar condiciones previas antes de ejecutar el playbook
+- name:                           Validar condiciones previas antes de ejecutar el playbook
   ansible.builtin.include_tasks:
-    file:                   "validaciones-previas.yaml"
-    tags:
-      -                   always
+    file:                         validaciones-previas.yaml
+  tags:
+    -                             always
 
 
-- name:                 Preparativos previos para poder ejecutar el playbook
+- name:                           Preparativos previos para poder ejecutar el playbook
   ansible.builtin.include_tasks:
-    file:                   "preparativos-previos.yaml"
-    tags:
-      -                   always
+    file:                         preparativos-previos.yaml
+  tags:
+    -                             always

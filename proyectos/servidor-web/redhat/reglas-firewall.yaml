@@ -4,7 +4,8 @@
     state:              enabled
     permanent:          true
     immediate:          true
-    port:                "{{ aplicacion_a_desplegar.puerto_apache }}"
+    port:                "{{ aplicacion_a_desplegar.puerto_apache }}/tcp"
+  become:             true    # Tocar el cortafuegos es de root
   tags:
     -                   always
 

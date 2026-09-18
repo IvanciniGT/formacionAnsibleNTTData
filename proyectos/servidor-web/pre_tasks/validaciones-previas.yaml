@@ -6,7 +6,6 @@
     -                 always
 
 
-
 - name:               Cortar la ejecución del playbook si el repositorio no existe
   ansible.builtin.meta: end_host 
   # Comprobar que el repositorio existe. Si no existe corto la ejecución de playbook
