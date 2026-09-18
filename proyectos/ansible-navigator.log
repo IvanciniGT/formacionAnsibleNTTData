@@ -1,0 +1,14 @@
+2026-09-18T10:55:25.738907+00:00 ERROR 'ansible_navigator.actions.collections._run_runner' Traceback (most recent call last):
+  File "/Users/ivan/.cache/ansible-navigator/catalog_collections.py", line 25, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-09-18T10:55:25.739480+00:00 ERROR 'ansible_navigator.actions.collections.notify_failed' humph. Something went really wrong while cataloging collections.
+2026-09-18T10:55:25.739566+00:00 ERROR 'ansible_navigator.actions.collections.notify_failed' Details have been added to the log file
+2026-09-18T10:55:25.739603+00:00 ERROR 'ansible_navigator.actions.collections.notify_failed' [HINT] Please log an issue about this one, it shouldn't have happened
+2026-09-18T10:55:25.739666+00:00 ERROR 'ansible_navigator.actions.collections._parse' Unable to extract collection json from stdout
+Traceback (most recent call last):
+  File "/Users/ivan/Library/Python/3.14/lib/python/site-packages/ansible_navigator/actions/collections.py", line 547, in _parse
+    _warnings, json_str = output.split("{", 1)
+    ^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 2, got 1)

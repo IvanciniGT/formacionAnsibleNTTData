@@ -32,8 +32,12 @@ ansible_user=ansible
 Y ya:
 
 ```bash
-ansible-playbook -i inventario.ini playbook.yaml
+ansible-playbook -i inventario.ini playbook.yaml -e @defaults/datos-usuario.yaml
 ```
+
+Ese `-e @fichero` no es opcional: el playbook **no carga solo** `defaults/datos-usuario.yaml`.
+Sin él, variables como `aplicacion_a_desplegar` no existen y el playbook no llega a ninguna parte.
+(La alternativa es declararlo en un `vars_files` del play, y entonces el `-e` sobra.)
 
 ### Por tipos de operación (tags)
 
@@ -69,7 +73,7 @@ Ansible no instala agentes, pero necesita Python al otro lado para ejecutar sus 
 
 Hay dos ficheros de variables y la diferencia importa:
 
-- **`datos-usuario.yaml`** — lo que cambia en cada despliegue: qué aplicación, en qué dominio,
+- **`defaults/datos-usuario.yaml`** — lo que cambia en cada despliegue: qué aplicación, en qué dominio,
   en qué puerto, con qué versión de Apache. **Esto lo toca el usuario.** Lo que hay ahí es
   un ejemplo: casi todo es opcional y el playbook aguanta que no venga.
 - **`vars/constantes.yaml`** — lo que NO depende del despliegue sino de la distro:
@@ -95,7 +99,8 @@ en una máquina que habría funcionado sin problema.
 
 ```
 playbook.yaml                 El play: pre_tasks -> tasks -> post_tasks + handlers
-datos-usuario.yaml            Lo que rellena quien usa el playbook
+defaults/
+  datos-usuario.yaml          Lo que rellena quien usa el playbook
 vars/constantes.yaml          Lo que depende de la distro, no del despliegue
 
 pre_tasks/
@@ -158,6 +163,37 @@ Por eso el código pregunta siempre por el **contenido** (`repo.name | length > 
 por la **existencia** (`repo is defined`): el mapa puede llegar vacío, y un mapa vacío
 existe igual.
 
+
+## Ver las variables por dentro (las tareas LUPA)
+
+Repartidas por el playbook hay tareas que empiezan por `LUPA -`. No hacen nada: enseñan
+las variables que el playbook va generando y capturando por el camino, justo detrás de la
+tarea que las produce.
+
+```bash
+ansible-playbook -i inventario.ini playbook.yaml -e @defaults/datos-usuario.yaml -vv
+```
+
+Sin `-vv` no se imprimen (llevan `verbosity: 2`), así que en el día a día no estorban.
+Con `-vv` puedes ver, en orden:
+
+| Dónde | Qué enseña |
+|---|---|
+| `pre_tasks/informacion-previa.yaml` | Las constantes cargadas · **todo** lo que trae `ansible_facts` · cómo `RedHat` se convierte en `redhat` · qué claves trae un `register` |
+| `pre_tasks/preparativos-previos.yaml` | El `combine` de cada dependencia, paso a paso |
+| `debian/` y `redhat/` | El mismo `package` de entrada, y la orden distinta que sale para apt y para dnf |
+| `tasks/main.yaml` | Qué ha respondido el `synchronize` simulado, que es de lo que cuelga todo el despliegue |
+| `post_tasks/main.yaml` | Lo que se sabe del servicio · la respuesta del DNS · qué ha devuelto la web |
+
+**Una trampa que merece la pena conocer:** que un `debug` no imprima **no** significa que no
+se evalúe. Ansible resuelve los argumentos de la tarea antes de ejecutarla, así que una lupa
+escondida que mire una variable inexistente tumba el playbook igual:
+
+```
+Finalization of task args failed: 'variable_que_no_existe' is undefined
+```
+
+Por eso todas las lupas llevan `| default(...)` o un `when: ... is defined`.
 
 ## Qué comprueba al final
 

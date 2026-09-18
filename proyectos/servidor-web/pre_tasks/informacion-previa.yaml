@@ -5,6 +5,34 @@
   tags:
     -               always
 
+# ======================================================================================
+# LAS TAREAS "LUPA"
+# ======================================================================================
+# Son debug que enseñan las variables que vamos generando y capturando por el camino.
+# Todas llevan "verbosity: 2": la tarea SE EJECUTA SIEMPRE, pero solo IMPRIME si lanzas
+# el playbook con -vv. Así en el día a día no estorban y en clase se ven todas:
+#
+#     ansible-playbook -i inventario.ini playbook.yaml -vv
+#
+# OJO CON UNA TRAMPA: que no imprima NO significa que no se evalúe. Ansible resuelve los
+# argumentos de la tarea ANTES de ejecutarla, así que un debug escondido que mire una
+# variable que no existe te tumba el playbook igual. Comprobado:
+#     "Finalization of task args failed: 'variable_que_no_existe' is undefined"
+# Por eso todas las lupas llevan | default(...) o un when: ... is defined.
+# ======================================================================================
+
+- name:            LUPA - Las constantes que acabo de cargar
+  ansible.builtin.debug:
+    msg:
+      paquete_apache_por_familia:   "{{ nombre_paquete_apache | default('(no cargado)') }}"
+      carpeta_config_por_familia:   "{{ carpetas_configuracion_apache | default('(no cargado)') }}"
+      familias_admitidas:           "{{ sistemas_operativos_admitidos | default([]) }}"
+      dependencias_a_instalar:      "{{ dependencias | default([]) | map(attribute='name') | list }}"
+    verbosity:     2
+  tags:
+    -               always
+
+
 - name:             Obtener información del sistema operativo del host destino
   ansible.builtin.setup:
     gather_subset:      
@@ -31,6 +59,17 @@
   tags:
     -               always
 
+- name:             LUPA - TODO lo que me ha traído el setup
+  # Esto es exactamente lo que dice el comentario de arriba: la mejor documentación de
+  # ansible_facts es imprimirla. Cambia el gather_subset y vuelve a mirar aquí: verás
+  # aparecer y desaparecer secciones enteras.
+  ansible.builtin.debug:
+    var:            ansible_facts
+    verbosity:      2
+  tags:
+    -               always
+
+
 # En nuestro caso no me interesa la distro: 
 # Las distros son del tipo: "Ubuntu Mint", "XUbuntu", "Rocky", "AlmaLinux".
 # Lo que me interesa es la familia de la distro: "Ubuntu", "RedHat"
@@ -41,6 +80,21 @@
     familia_sistema_operativo:    "{{ ansible_facts.os_family | lower }}"
   tags:
     -           always
+
+- name:             LUPA - La variable que me acabo de fabricar
+  # Aquí se ve la transformación: el fact viene como "RedHat" o "Debian" (con mayúsculas,
+  # tal cual lo reporta la máquina) y yo me guardo "redhat" / "debian", que es la forma
+  # que uso para construir rutas de ficheros y buscar en los mapas de constantes.
+  ansible.builtin.debug:
+    msg:
+      os_family_tal_como_viene:   "{{ ansible_facts.os_family | default('(sin facts)') }}"
+      familia_sistema_operativo:  "{{ familia_sistema_operativo | default('(sin definir)') }}"
+      fichero_que_voy_a_incluir:  "{{ familia_sistema_operativo | default('?') }}/tareas-instalacion-paquete.yaml"
+      esta_admitida:              "{{ familia_sistema_operativo | default('') in sistemas_operativos_admitidos | default([]) }}"
+    verbosity:      2
+  tags:
+    -           always
+
 
 - name:             Mirar si el repositorio existe
   # Comprobar que el repositorio existe. Si no existe corto la ejecución de playbook
@@ -53,5 +107,21 @@
     follow_redirects:   all
   failed_when:      false
   register:         comprobacion_repositorio
+  tags:
+    -               despliegue
+
+
+- name:             LUPA - Qué me traigo cuando hago "register" de una tarea
+  # Un register NO guarda "el resultado": guarda un mapa con TODO lo que el módulo ha
+  # querido contar. Imprimir sus claves es la forma rápida de saber qué puedes consultar
+  # después en un when, un failed_when o un assert.
+  ansible.builtin.debug:
+    msg:
+      claves_del_register:  "{{ comprobacion_repositorio.keys() | list | default([]) }}"
+      url_comprobada:       "{{ aplicacion_a_desplegar.repo_git }}"
+      status:               "{{ comprobacion_repositorio.status | default('(sin status)') }}"
+      voy_a_cortar:         "{{ comprobacion_repositorio.status | default(0) not in range(200, 300) | list }}"
+    verbosity:      2
+  when:             comprobacion_repositorio is defined
   tags:
     -               despliegue

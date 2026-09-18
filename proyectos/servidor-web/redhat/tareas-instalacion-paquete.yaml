@@ -10,6 +10,17 @@
 #     url:  
 #     gpgkey:         ""
 
+- name:               LUPA - Qué me piden instalar y qué le voy a decir a dnf
+  # Compara esta salida con la del fichero de debian: el MISMO package de entrada
+  # produce "httpd >= 2.4.37" aquí y "apache2>=2.4.37" allí. Misma idea, sintaxis contraria.
+  ansible.builtin.debug:
+    msg:
+      package_recibido:     "{{ package }}"
+      me_han_dado_repo:     "{{ package.repo.name | default('', true) | length > 0 }}"
+      version_pedida:       "{{ package.version.name | default('(la que haya en el repo)', true) }}"
+      lo_que_recibira_dnf:  "{{ package.name }}{{ (' ' + (package.version.matching | default('=', true)) + ' ' + package.version.name) if (package.version.name | default('', true) | length > 0) else '' }}"
+    verbosity:        2
+
 - name:               Asegurar que el repo del paquete queda habilitado
   ansible.builtin.yum_repository:
     name:             "{{ package.repo.name }}"

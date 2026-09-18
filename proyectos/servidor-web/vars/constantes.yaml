@@ -65,4 +65,4 @@ dependencias:
   version: 
       name: "7.61.0"
       matching: ">="
-    
+- name: rsync

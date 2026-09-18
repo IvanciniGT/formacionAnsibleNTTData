@@ -1,4 +1,21 @@
 
+- name:                     LUPA - Qué "package" se construye para cada dependencia
+  # Aquí se ve el combine en acción: lo general de la dependencia, más lo que traiga
+  # para esta familia concreta (si es que trae algo). Este es justo el sitio donde el
+  # playbook se rompía: merece la pena mirarlo.
+  ansible.builtin.debug:
+    msg:
+      dependencia_tal_cual:   "{{ dependencia }}"
+      lo_propio_de_la_familia: "{{ dependencia[familia_sistema_operativo] | default({}, true) }}"
+      package_resultante:     "{{ dependencia | combine(dependencia[familia_sistema_operativo] | default({}, true)) }}"
+    verbosity:              2
+  loop:                     "{{ dependencias }}"
+  loop_control:
+    loop_var:                dependencia
+    label:                   "{{ dependencia.name }}"
+  tags:
+    -                       always
+
 - name:                     Asegurar que la paquetería necesaria para la ejecución del playbook queda instalada
   ansible.builtin.include_tasks:
     file:                   "{{ familia_sistema_operativo }}/tareas-instalacion-paquete.yaml"

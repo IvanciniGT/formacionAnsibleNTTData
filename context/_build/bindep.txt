@@ -1,0 +1,7 @@
+iproute
+iputils
+curl
+openssh-clients
+sshpass
+python3.12
+python3.12-devel

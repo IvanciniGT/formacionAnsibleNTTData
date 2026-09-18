@@ -92,6 +92,20 @@
       tags:
         - despliegue
 
+    - name:             LUPA - Qué me ha dicho el synchronize simulado
+      # Esta es la variable de la que cuelga TODO el despliegue: cada "when: sync_result is
+      # changed" de aquí abajo mira esto. En check_mode el módulo no ha copiado nada:
+      # solo ha mirado y ha dicho si habría cambios. De ahí sale la decisión de hacer
+      # backup, de parar el servicio y de sincronizar de verdad.
+      ansible.builtin.debug:
+        msg:
+          habria_cambios:     "{{ sync_result is changed }}"
+          que_haria_rsync:    "{{ sync_result.stdout_lines | default([]) }}"
+        verbosity:          2
+      when:                 sync_result is defined
+      tags:
+        - despliegue
+
     - name:             Asegurar que la carpeta de backups existe si es necesaria
       ansible.builtin.file:
         path:           "{{ carpeta_backups }}"

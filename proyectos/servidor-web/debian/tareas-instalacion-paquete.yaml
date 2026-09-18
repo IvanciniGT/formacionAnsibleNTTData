@@ -25,6 +25,19 @@
 # ------------------------------------------------------------------------------------
 # 1. EL REPOSITORIO (solo si me lo dan)
 # ------------------------------------------------------------------------------------
+- name:               LUPA - Qué me piden instalar y qué le voy a decir a apt
+  ansible.builtin.debug:
+    msg:
+      package_recibido:     "{{ package }}"
+      me_han_dado_repo:     "{{ package.repo.name | default('', true) | length > 0 }}"
+      version_pedida:       "{{ version_pedida | default('(la que haya en el repo)', true) }}"
+      comparador:           "{{ comparador }}"
+      lo_que_recibira_apt:  "{{ package.name }}{{ (comparador ~ version_pedida) if version_pedida | length > 0 else '' }}"
+    verbosity:        2
+  vars:
+    version_pedida:   "{{ package.version.name | default('', true) }}"
+    comparador:       "{{ package.version.matching | default('=', true) }}"
+
 - name:               Asegurar que el repo del paquete queda habilitado
   ansible.builtin.deb822_repository:
     name:             "{{ package.repo.name }}"          # Genera /etc/apt/sources.list.d/<name>.sources

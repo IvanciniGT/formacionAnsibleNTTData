@@ -247,3 +247,32 @@ Con include_role puedo incluir un role completo dentro de mi playbook, con todas
 Hay una herramienta dentro de Ansible llamada ansible-galaxy que permite gestionar roles, incluyendo la creación, instalación y publicación de roles.
 
 Un role es como un playbook, pero sin la parte de "hosts", ni la de "gather_facts".
+
+
+---
+
+# Imagenes base de contenedor
+
+Ubuntu, Debian, CentOS, Alpine, Fedora
+
+Lo que viene en esas imágenes es un ZIP (TAR) con:
+- Las 4 carpetas estandar que define POSIX:
+   bin/ 
+   etc/
+   home/
+   var/
+   tmp/
+   root/
+   usr/
+   ...
+- Los 4 comandos que define POSIX: 
+  - cp
+  - ls
+  - mv
+  - rm
+  - ...
+- Los programas habituales que encontramos en cada distro:
+  - Ubuntu: apt, dpkg
+  - Rocky: yum, dnf
+  - Alpine: apk
+- 

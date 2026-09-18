@@ -11,6 +11,18 @@
   tags:
     -             pruebas
 
+- name:           LUPA - Qué sé del servicio de apache
+  ansible.builtin.debug:
+    msg:
+      servicio_que_busco:     "{{ servicio_apache }}"
+      lo_que_sé_de_él:        "{{ ansible_facts.services[servicio_apache] | default('NO APARECE en la lista de servicios') }}"
+      servicios_conocidos:    "{{ ansible_facts.services | default({}) | length }}"
+    verbosity:    2
+  vars:
+    servicio_apache: "{{ nombre_paquete_apache[familia_sistema_operativo] }}.service"
+  tags:
+    -             pruebas
+
 - name:           Verificar que el servicio de Apache está corriendo
   ansible.builtin.assert:
     that:
@@ -85,6 +97,18 @@
 #   tags:
 #     -           pruebas
 
+- name:           LUPA - Qué me ha contestado el DNS
+  ansible.builtin.debug:
+    msg:
+      dominio_preguntado:   "{{ aplicacion_a_desplegar.nombre_dominio }}"
+      respuesta_de_getent:  "{{ resolucion_dns.stdout | default('(no resolvió)') }}"
+      ip_de_este_nodo:      "{{ ansible_host | default(inventory_hostname) }}"
+      resuelve_contra_él:   "{{ (ansible_host | default(inventory_hostname)) in (resolucion_dns.stdout | default('')) }}"
+    verbosity:    2
+  when:           resolucion_dns is defined
+  tags:
+    -             pruebas
+
 # "pruebas" es una LISTA: cada elemento es una prueba completa con sus tres campos.
 # pruebas:
 #   - url:            /test
@@ -120,6 +144,22 @@
   # Me permite que una tarea no se ejecute en el nodo remoto, sino en el nodo que me interesa.
   # Esta tarea comprueba el CÓDIGO DE ESTADO: de eso se encarga status_code, si no coincide, falla.
   # El contenido lo comprueba la tarea de abajo. Otra vez lo mismo: una prueba, una cosa.
+
+- name:           LUPA - Qué ha respondido la web en cada prueba
+  ansible.builtin.debug:
+    msg:
+      url:              "{{ resultado.url | default('?') }}"
+      status:           "{{ resultado.status | default('?') }}"
+      bytes_recibidos:  "{{ resultado.content | default('') | length }}"
+      asi_empieza:      "{{ resultado.content | default('') | truncate(80) }}"
+    verbosity:    2
+  loop:           "{{ respuesta_web.results | default([]) }}"
+  loop_control:
+    loop_var:     resultado
+    label:        "{{ resultado.prueba.url | default('?') }}"
+  when:           respuesta_web is defined
+  tags:
+    -             pruebas
 
 - name:           Verificar que cada respuesta trae el contenido esperado
   ansible.builtin.assert:

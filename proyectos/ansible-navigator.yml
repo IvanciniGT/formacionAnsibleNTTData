@@ -11,17 +11,17 @@ ansible-navigator:
         - ejemplo/inventario.ini
   execution-environment:
     container-engine: auto
-    enabled: true
+    enabled: true 
     # Cambiar a la imagen del entorno que toque: básico al empezar,
     # avanzado cuando el curso lo pida.
-    image: registry.ivanosuna.com/curso/ee-basico:1.0
+    image: mi-ee:1.0.0 #registry.ivanosuna.com/curso/ee-basico:1.0
     pull:
       policy: missing
-    volume-mounts:
+    #volume-mounts:
       # La clave SSH del alumno, para que el entorno pueda conectar.
-      - src: ~/.ssh/aula
-        dest: /runner/.ssh/aula
-        options: ro
-  mode: stdout
+      #- src: ~/.ssh/aula
+      #  dest: /runner/.ssh/aula
+      #  options: ro
+  #mode: stdout
   logging:
     level: warning
