@@ -48,6 +48,13 @@
     # Pero sería el mismo procedimiento, con otro módulo. Y descargaría en una carpeta temporal
     # Y luego miro si es lo mismo que hay desplegado o no
     # La diferencia en nuestro caso, es que al trabajar con git, no querremos copiar la carpeta .git
+    - name:             Asegurar que no existe la carpeta .git en el repo descargado
+      ansible.builtin.file:
+        path:           "/tmp/{{ aplicacion_a_desplegar.nombre_dominio }}"
+        state:          absent
+      tags:
+        - despliegue
+
     - name:             Asegurar que el repositorio de la aplicación web quede clonado en una carpeta temporal en la última versión
       ansible.builtin.git:
         repo:           "{{ aplicacion_a_desplegar.repo_git }}"
